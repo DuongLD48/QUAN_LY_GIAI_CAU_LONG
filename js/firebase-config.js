@@ -6,7 +6,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCrlYkefqmLHfoMgbqFLOrv75VWs-Zas5g",
   authDomain: "quanlygiaicaulong.firebaseapp.com",
-  databaseURL: "https://quanlygiaicaulong-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL: "https://quanlygiaicaulong-default-rtdb.firebaseio.com",
   projectId: "quanlygiaicaulong",
   storageBucket: "quanlygiaicaulong.firebasestorage.app",
   messagingSenderId: "965253318515",
@@ -16,9 +16,8 @@ const firebaseConfig = {
 function isFirebaseConfigured() {
   if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) return false;
   
-  // Tự động bổ sung databaseURL nếu người dùng copy thiếu dòng này từ Firebase
   if (!firebaseConfig.databaseURL && firebaseConfig.projectId) {
-    firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`;
+    firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`;
   }
 
   return (
