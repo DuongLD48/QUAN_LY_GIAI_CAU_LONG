@@ -4,17 +4,6 @@
  * Toàn bộ ghi trực tiếp vào Database (Firebase hoặc LocalStorage).
  */
 
-import {
-  initDatabaseService,
-  onDataChange,
-  seedDatabase,
-  updateMatchScore,
-  updateTeam,
-  updateMatchSchedule,
-  updateSettings,
-  isFirebaseConfigured
-} from './firebase-config.js';
-
 let tournamentData = {
   settings: {},
   teams: {},
@@ -24,7 +13,7 @@ let tournamentData = {
 let currentEditingMatchId = null;
 let isAuthenticated = false;
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function startAdminApp() {
   setupPinAuth();
   setupAdminTabs();
   setupScoreModal();
@@ -34,18 +23,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupAdminQrModal();
 
   // Khởi tạo Database Service
-  const dbInfo = await initDatabaseService();
-  updateDbBadge(dbInfo.mode);
+  const dbInfo = await window.initDatabaseService();
+  updateDbBadge(dbInfo?.mode || 'local');
 
   // Lắng nghe dữ liệu
-  onDataChange((data) => {
+  window.onDataChange((data) => {
     if (!data) return;
     tournamentData = data;
     if (isAuthenticated) {
       renderAdminAll();
     }
   });
-});
+}
+
+// Khởi chạy khi DOM sẵn sàng
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startAdminApp);
+} else {
+  startAdminApp();
+}
 
 /**
  * Toast Notification thay thế alert()

@@ -4,7 +4,9 @@
  * Hiển thị điểm trực tiếp 3 sân, Lịch đấu có tìm kiếm, Bảng xếp hạng và Nhánh đấu Knockout.
  */
 
-import { initDatabaseService, onDataChange } from './firebase-config.js';
+// Lấy các service từ window (hỗ trợ cả file:// và http://)
+const getDbService = () => window.initDatabaseService || initDatabaseService;
+const getDataListener = () => window.onDataChange || onDataChange;
 
 // Trạng thái ứng dụng Client
 let tournamentData = {
@@ -18,8 +20,7 @@ let searchQuery = '';
 let previousScores = {}; // Lưu điểm số lần trước để phát hiện điểm nhảy và tạo hiệu ứng flash
 let isTvMode = false;
 
-// Khởi chạy khi DOM sẵn sàng
-document.addEventListener('DOMContentLoaded', async () => {
+async function startClientApp() {
   setupLiveClock();
   setupTabNavigation();
   setupScheduleFilters();
@@ -28,17 +29,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupQrCodeModal();
 
   // Khởi tạo Database Service
-  const dbInfo = await initDatabaseService();
-  updateSyncIndicator(dbInfo.mode);
+  const dbInfo = await window.initDatabaseService();
+  updateSyncIndicator(dbInfo?.mode || 'local');
 
   // Lắng nghe dữ liệu Realtime
-  onDataChange((data) => {
+  window.onDataChange((data) => {
     if (!data) return;
     checkScoreChanges(data.matches);
     tournamentData = data;
     renderAllViews();
   });
-});
+}
+
+// Khởi chạy khi DOM sẵn sàng (hỗ trợ cả trường hợp đã load xong)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startClientApp);
+} else {
+  startClientApp();
+}
 
 /**
  * Theo dõi thay đổi tỷ số để phát hiện trận nào vừa nhảy điểm
