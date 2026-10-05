@@ -94,15 +94,22 @@ function setupLiveClock() {
 function updateSyncIndicator(mode) {
   const syncText = document.getElementById('sync-text');
   const syncIcon = document.querySelector('#sync-status i');
+  const syncStatus = document.getElementById('sync-status');
   if (!syncText || !syncIcon) return;
 
   if (mode === 'firebase') {
-    syncText.textContent = "Firebase Realtime";
+    syncText.textContent = "Cloud DB: Online";
     syncIcon.className = "fa-solid fa-cloud text-emerald-400";
+    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold";
   } else {
-    syncText.textContent = "Đồng Bộ Nội Bộ";
+    syncText.textContent = "Chế độ: Local Storage";
     syncIcon.className = "fa-solid fa-hard-drive text-amber-400";
+    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold";
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.updateSyncIndicator = updateSyncIndicator;
 }
 
 /**

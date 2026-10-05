@@ -259,13 +259,25 @@
               </button>
             </div>
 
-            <!-- Firebase Setup Guide Link -->
-            <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-700 text-[11px] text-slate-400">
-              <div class="font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                <i class="fa-brands fa-google text-amber-400"></i>
-                Trạng Thái Kết Nối Firebase:
+            <!-- Firebase Connection & Live Diagnostics -->
+            <div class="mt-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="font-bold text-xs text-white flex items-center gap-2">
+                  <span id="live-db-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                  <span id="live-db-title">Đang Kiểm Tra Database...</span>
+                </div>
+                <button type="button" id="btn-ping-db" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold border border-slate-700 transition flex items-center gap-1">
+                  <i class="fa-solid fa-signal"></i> Ping Test
+                </button>
               </div>
-              <p id="firebase-status-note">Đang kiểm tra...</p>
+
+              <div id="firebase-status-note" class="text-[11px] text-slate-400 leading-relaxed">
+                Đang kiểm tra trạng thái...
+              </div>
+
+              <div id="ping-result-box" class="hidden p-2.5 rounded-xl bg-slate-950 text-[11px] border border-slate-800 font-mono">
+                <!-- Hiển thị kết quả kiểm tra ping -->
+              </div>
             </div>
           </div>
 

@@ -21,6 +21,7 @@ async function startAdminApp() {
   setupSettingsForm();
   setupDatabaseActionButtons();
   setupAdminQrModal();
+  setupPingTestButton();
 
   // Khởi tạo Database Service
   const dbInfo = await window.initDatabaseService();
@@ -130,17 +131,80 @@ function setupPinAuth() {
 function updateDbBadge(mode) {
   const badge = document.getElementById('db-badge');
   const note = document.getElementById('firebase-status-note');
+  const dot = document.getElementById('live-db-dot');
+  const title = document.getElementById('live-db-title');
   if (!badge) return;
 
   if (mode === 'firebase') {
     badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-bold";
     badge.textContent = "Firebase Cloud Online";
-    if (note) note.innerHTML = `<span class="text-emerald-400 font-bold">Đã kết nối Firebase Realtime Database.</span> Dữ liệu được đồng bộ trực tiếp lên đám mây toàn cầu.`;
+    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse";
+    if (title) title.innerHTML = `<span class="text-emerald-400">Google Cloud: ĐÃ KẾT NỐI ONLINE</span>`;
+    if (note) {
+      const dbUrl = window.firebaseConfig?.databaseURL || 'Đã cấu hình';
+      note.innerHTML = `<div class="space-y-1">
+        <div class="text-emerald-400 font-bold"><i class="fa-solid fa-cloud-arrow-up"></i> Đang đọc/ghi trực tiếp từ Firebase Cloud Database!</div>
+        <div class="text-[10px] text-slate-400 font-mono break-all bg-slate-950 p-1.5 rounded-lg border border-slate-800">URL: ${dbUrl}</div>
+        <div class="text-[10px] text-slate-400">Khán giả và VĐV quét mã QR trên điện thoại sẽ xem được điểm nhảy tức thì.</div>
+      </div>`;
+    }
   } else {
     badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold";
     badge.textContent = "Chế độ Local Storage";
-    if (note) note.innerHTML = `<span class="text-amber-400 font-bold">Đang lưu cục bộ trên trình duyệt.</span> Để chia sẻ link cho khán giả xem từ xa, hãy dán API Key vào <code class="text-white">js/firebase-config.js</code>.`;
+    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+    if (title) title.innerHTML = `<span class="text-amber-400">Chế độ: LOCAL STORAGE (Nội bộ máy)</span>`;
+    if (note) {
+      note.innerHTML = `<div class="space-y-1">
+        <div class="text-amber-300 font-semibold"><i class="fa-solid fa-hard-drive"></i> Dữ liệu hiện chỉ lưu trên trình duyệt của máy tính này.</div>
+        <div class="text-[10px] text-slate-400">Để VĐV quét mã QR xem được trên điện thoại từ xa, hãy dán API Key Firebase vào file <code class="text-white bg-slate-800 px-1 py-0.5 rounded">js/firebase-config.js</code>.</div>
+      </div>`;
+    }
   }
+}
+
+function setupPingTestButton() {
+  const btnPing = document.getElementById('btn-ping-db');
+  const pingBox = document.getElementById('ping-result-box');
+  if (!btnPing || !pingBox) return;
+
+  btnPing.addEventListener('click', async () => {
+    btnPing.disabled = true;
+    btnPing.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang test...`;
+    pingBox.classList.remove('hidden');
+    pingBox.innerHTML = `<span class="text-slate-400">Đang gửi gói tin kiểm tra tới máy chủ...</span>`;
+
+    const res = await window.testDatabaseConnection();
+
+    if (res.mode === 'firebase' && res.success) {
+      pingBox.innerHTML = `
+        <div class="text-emerald-400 font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-check"></i> KẾT NỐI FIREBASE THÀNH CÔNG!
+        </div>
+        <div class="text-slate-300 text-[10px] mt-1">Độ trễ phản hồi (Ping): <b class="text-emerald-300">${res.latency}</b></div>
+        <div class="text-slate-400 text-[10px] truncate">Server: ${res.url}</div>
+      `;
+      showToast(`Ping thành công tới Firebase (${res.latency})!`);
+    } else if (res.mode === 'firebase_error') {
+      pingBox.innerHTML = `
+        <div class="text-rose-400 font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-triangle-exclamation"></i> LỖI KẾT NỐI FIREBASE!
+        </div>
+        <div class="text-rose-300 text-[10px] mt-1">${res.message}</div>
+      `;
+      showToast("Lỗi kết nối Firebase!", "error");
+    } else {
+      pingBox.innerHTML = `
+        <div class="text-amber-400 font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-info-circle"></i> CHẾ ĐỘ LOCAL STORAGE
+        </div>
+        <div class="text-slate-300 text-[10px] mt-1">${res.message}</div>
+      `;
+      showToast("Đang ở chế độ Local Storage nội bộ", "info");
+    }
+
+    btnPing.disabled = false;
+    btnPing.innerHTML = `<i class="fa-solid fa-signal"></i> Ping Test`;
+  });
 }
 
 /**
