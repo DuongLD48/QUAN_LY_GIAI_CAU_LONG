@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupScheduleFilters();
   setupSearchInput();
   setupTvMode();
+  setupQrCodeModal();
 
   // Khởi tạo Database Service
   const dbInfo = await initDatabaseService();
@@ -801,3 +802,61 @@ function getTeamDisplay(teamId, placeholder = "Chưa xác định") {
     membersText
   };
 }
+
+/**
+ * 5. TẠO & IN MÃ QR CODE GIẢI ĐẤU
+ */
+let qrInstance = null;
+
+function setupQrCodeModal() {
+  const btnOpen = document.getElementById('btn-qr-modal');
+  const btnClose = document.getElementById('btn-close-qr');
+  const modal = document.getElementById('qr-modal');
+  const qrBox = document.getElementById('qrcode-box');
+  const qrInput = document.getElementById('qr-url-input');
+  const btnPrint = document.getElementById('btn-print-qr');
+  const btnDownload = document.getElementById('btn-download-qr');
+
+  if (!btnOpen || !modal) return;
+
+  btnOpen.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+    const currentUrl = window.location.href.split('#')[0];
+    if (qrInput) qrInput.value = currentUrl;
+
+    if (qrBox && typeof QRCode !== 'undefined') {
+      qrBox.innerHTML = '';
+      qrInstance = new QRCode(qrBox, {
+        text: currentUrl,
+        width: 190,
+        height: 190,
+        colorDark: "#1e293b",
+        colorLight: "#f8fafc",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  });
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+  }
+
+  if (btnPrint) {
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+      const img = qrBox?.querySelector('img');
+      if (img && img.src) {
+        const link = document.createElement('a');
+        link.download = 'ma-qr-giai-cau-long-2026.png';
+        link.href = img.src;
+        link.click();
+      }
+    });
+  }
+}
+

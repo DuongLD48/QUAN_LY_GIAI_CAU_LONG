@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupStepButtons();
   setupSettingsForm();
   setupDatabaseActionButtons();
+  setupAdminQrModal();
 
   // Khởi tạo Database Service
   const dbInfo = await initDatabaseService();
@@ -714,6 +715,7 @@ function setupSettingsForm() {
 function setupDatabaseActionButtons() {
   const btnSeed = document.getElementById('btn-seed-data');
   const btnReset = document.getElementById('btn-reset-scores');
+  const btnSimulate = document.getElementById('btn-simulate-tour');
 
   if (btnSeed) {
     btnSeed.addEventListener('click', async () => {
@@ -740,6 +742,115 @@ function setupDatabaseActionButtons() {
         }
         showToast("Đã reset tỷ số toàn bộ các trận!");
       }
+    });
+  }
+
+  if (btnSimulate) {
+    btnSimulate.addEventListener('click', async () => {
+      const confirmSim = confirm("Bạn có muốn chạy mô phỏng toàn bộ giải đấu (20 trận vòng bảng + Bán kết + Chung kết) để kiểm thử dữ liệu?");
+      if (!confirmSim) return;
+
+      showToast("Đang chạy mô phỏng toàn bộ giải đấu...", "info");
+
+      // 1. Mô phỏng 20 trận vòng bảng
+      const matches = tournamentData.matches || {};
+      const targetPts = tournamentData.settings?.pointsPerSet || 15;
+
+      for (const [id, m] of Object.entries(matches)) {
+        if (m.stage === 'group') {
+          // Ngẫu nhiên chọn đội A hoặc đội B thắng
+          const isAWin = Math.random() > 0.45;
+          const isThreeSets = Math.random() > 0.6;
+
+          let s1a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
+          let s1b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
+
+          let s2a, s2b, s3a = 0, s3b = 0, setsWonA = 0, setsWonB = 0;
+
+          if (isThreeSets) {
+            s2a = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
+            s2b = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
+            s3a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
+            s3b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
+            setsWonA = isAWin ? 2 : 1;
+            setsWonB = isAWin ? 1 : 2;
+          } else {
+            s2a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
+            s2b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
+            setsWonA = isAWin ? 2 : 0;
+            setsWonB = isAWin ? 0 : 2;
+          }
+
+          const winner = isAWin ? m.teamA : m.teamB;
+
+          await updateMatchScore(id, {
+            scores: [
+              { a: s1a, b: s1b },
+              { a: s2a, b: s2b },
+              { a: s3a, b: s3b }
+            ],
+            setsWon: { a: setsWonA, b: setsWonB },
+            winner,
+            status: 'completed'
+          });
+        }
+      }
+
+      // 2. Tự động cập nhật Bán kết từ BXH
+      await checkAndUpdateKnockoutBrackets();
+
+      // Đợi ngắn để state cập nhật
+      await new Promise(r => setTimeout(r, 400));
+
+      // 3. Mô phỏng Bán kết 1 & 2
+      const bk1 = tournamentData.matches['M21'];
+      const bk2 = tournamentData.matches['M22'];
+
+      if (bk1 && bk1.teamA && bk1.teamB) {
+        await updateMatchScore('M21', {
+          scores: [{ a: targetPts, b: targetPts - 3 }, { a: targetPts - 2, b: targetPts }, { a: targetPts, b: targetPts - 4 }],
+          setsWon: { a: 2, b: 1 },
+          winner: bk1.teamA,
+          status: 'completed'
+        });
+      }
+
+      if (bk2 && bk2.teamA && bk2.teamB) {
+        await updateMatchScore('M22', {
+          scores: [{ a: targetPts, b: targetPts - 4 }, { a: targetPts, b: targetPts - 2 }],
+          setsWon: { a: 2, b: 0 },
+          winner: bk2.teamA,
+          status: 'completed'
+        });
+      }
+
+      // Cập nhật Chung kết & Tranh 3-4
+      await checkAndUpdateKnockoutBrackets();
+      await new Promise(r => setTimeout(r, 400));
+
+      // 4. Mô phỏng Chung kết & Tranh 3-4
+      const ck = tournamentData.matches['M24'];
+      const t34 = tournamentData.matches['M23'];
+
+      if (ck && ck.teamA && ck.teamB) {
+        await updateMatchScore('M24', {
+          scores: [{ a: targetPts, b: targetPts - 3 }, { a: targetPts, b: targetPts - 1 }],
+          setsWon: { a: 2, b: 0 },
+          winner: ck.teamA,
+          status: 'completed'
+        });
+      }
+
+      if (t34 && t34.teamA && t34.teamB) {
+        await updateMatchScore('M23', {
+          scores: [{ a: targetPts - 4, b: targetPts }, { a: targetPts, b: targetPts - 3 }, { a: targetPts, b: targetPts - 2 }],
+          setsWon: { a: 2, b: 1 },
+          winner: t34.teamA,
+          status: 'completed'
+        });
+      }
+
+      showToast("Mô phỏng toàn bộ giải đấu hoàn tất! Hãy mở trang Xem Live để kiểm tra.");
     });
   }
 }
@@ -826,3 +937,62 @@ function getTeamInfo(teamId, placeholder = "Chưa xác định") {
     membersText: (t.members || []).map(m => m.name).join(' - ')
   };
 }
+
+/**
+ * 11. MÃ QR CODE CHO ADMIN
+ */
+let adminQrInstance = null;
+
+function setupAdminQrModal() {
+  const btnOpen = document.getElementById('admin-btn-qr');
+  const btnClose = document.getElementById('admin-btn-close-qr');
+  const modal = document.getElementById('admin-qr-modal');
+  const qrBox = document.getElementById('admin-qrcode-box');
+  const qrInput = document.getElementById('admin-qr-url-input');
+  const btnPrint = document.getElementById('admin-btn-print-qr');
+  const btnDownload = document.getElementById('admin-btn-download-qr');
+
+  if (!btnOpen || !modal) return;
+
+  btnOpen.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+    // Trỏ tới link index.html để khán giả xem live
+    const viewerUrl = window.location.href.replace(/admin\.html.*$/, 'index.html');
+    if (qrInput) qrInput.value = viewerUrl;
+
+    if (qrBox && typeof QRCode !== 'undefined') {
+      qrBox.innerHTML = '';
+      adminQrInstance = new QRCode(qrBox, {
+        text: viewerUrl,
+        width: 190,
+        height: 190,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  });
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+  }
+
+  if (btnPrint) {
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+      const img = qrBox?.querySelector('img');
+      if (img && img.src) {
+        const link = document.createElement('a');
+        link.download = 'ma-qr-khan-gia-giai-cau-long-2026.png';
+        link.href = img.src;
+        link.click();
+      }
+    });
+  }
+}
+
