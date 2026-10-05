@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPinAuth();
   setupAdminTabs();
   setupScoreModal();
+  setupStepButtons();
   setupSettingsForm();
   setupDatabaseActionButtons();
 
@@ -44,6 +45,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 });
+
+/**
+ * Toast Notification thay thế alert()
+ */
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const bgClass = type === 'success' 
+    ? 'bg-emerald-600 text-white' 
+    : type === 'error' 
+    ? 'bg-rose-600 text-white' 
+    : 'bg-blue-600 text-white';
+
+  const icon = type === 'success' 
+    ? 'fa-solid fa-circle-check' 
+    : type === 'error' 
+    ? 'fa-solid fa-circle-exclamation' 
+    : 'fa-solid fa-circle-info';
+
+  toast.className = `${bgClass} px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold pointer-events-auto transform translate-y-2 opacity-0 transition-all duration-300`;
+  toast.innerHTML = `<i class="${icon} text-sm"></i> <span>${message}</span>`;
+
+  container.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => {
+    toast.classList.remove('translate-y-2', 'opacity-0');
+  }, 10);
+
+  // Auto remove after 3s
+  setTimeout(() => {
+    toast.classList.add('translate-y-2', 'opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
 
 /**
  * 1. XÁC THỰC MÃ PIN
@@ -69,6 +107,7 @@ function setupPinAuth() {
     if (enteredPin === correctPin || enteredPin === "123456") {
       sessionStorage.setItem('admin_authenticated', 'true');
       unlockAdmin();
+      showToast("Xác thực Ban tổ chức thành công!");
     } else {
       pinError.classList.remove('hidden');
       pinInput.value = '';
@@ -97,13 +136,13 @@ function updateDbBadge(mode) {
   if (!badge) return;
 
   if (mode === 'firebase') {
-    badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono";
-    badge.textContent = "Firebase Online";
-    if (note) note.innerHTML = `<span class="text-emerald-400 font-bold">Đã kết nối Firebase Realtime Database.</span> Dữ liệu được đồng bộ trực tiếp lên đám mây.`;
+    badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-bold";
+    badge.textContent = "Firebase Cloud Online";
+    if (note) note.innerHTML = `<span class="text-emerald-400 font-bold">Đã kết nối Firebase Realtime Database.</span> Dữ liệu được đồng bộ trực tiếp lên đám mây toàn cầu.`;
   } else {
-    badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono";
-    badge.textContent = "Chế độ Local";
-    if (note) note.innerHTML = `<span class="text-amber-400 font-bold">Đang lưu cục bộ trên trình duyệt.</span> Để đồng bộ trực tiếp nhiều máy, hãy dán API Key vào <code class="text-white">js/firebase-config.js</code>.`;
+    badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold";
+    badge.textContent = "Chế độ Local Storage";
+    if (note) note.innerHTML = `<span class="text-amber-400 font-bold">Đang lưu cục bộ trên trình duyệt.</span> Để chia sẻ link cho khán giả xem từ xa, hãy dán API Key vào <code class="text-white">js/firebase-config.js</code>.`;
   }
 }
 
@@ -184,19 +223,19 @@ function renderAdminMatches() {
     const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
 
     html += `
-      <div class="bg-slate-800 rounded-2xl border ${isPlaying ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-700'} p-4 flex flex-col justify-between">
+      <div class="bg-slate-800 rounded-3xl border ${isPlaying ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-700'} p-4 flex flex-col justify-between" data-match-id="${m.id}">
         
         <!-- Header -->
         <div class="flex items-center justify-between pb-2.5 border-b border-slate-700/60 text-xs">
           <div class="flex items-center gap-2">
             <span class="font-bold text-white bg-slate-700 px-2 py-0.5 rounded">Trận ${m.id}</span>
-            <span class="text-slate-400">Sân ${m.court} • ${m.time}</span>
+            <span class="text-slate-400 font-medium">Sân ${m.court} • ${m.time}</span>
           </div>
           <div>
             ${isPlaying 
-              ? '<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-full">Đang đấu</span>'
+              ? '<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-full"><span class="live-indicator"></span> Đang đấu</span>'
               : isCompleted
-              ? '<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">Đã xong</span>'
+              ? '<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full"><i class="fa-solid fa-check"></i> Đã xong</span>'
               : '<span class="text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">Chưa đấu</span>'
             }
           </div>
@@ -205,25 +244,25 @@ function renderAdminMatches() {
         <!-- Cặp đấu & Tỷ số -->
         <div class="py-3 space-y-2">
           <!-- Đội A -->
-          <div class="flex items-center justify-between p-2 rounded-xl ${m.winner === m.teamA ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
+          <div class="flex items-center justify-between p-2.5 rounded-xl ${m.winner === m.teamA ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
             <div class="truncate pr-2">
               <div class="font-bold text-xs text-white truncate">${teamA.name}</div>
               <div class="text-[10px] text-slate-400 truncate">${teamA.membersText}</div>
             </div>
-            <div class="font-mono text-base font-extrabold text-blue-400">${setsWon.a}</div>
+            <div class="font-mono text-lg font-black text-blue-400">${setsWon.a}</div>
           </div>
 
           <!-- Đội B -->
-          <div class="flex items-center justify-between p-2 rounded-xl ${m.winner === m.teamB ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
+          <div class="flex items-center justify-between p-2.5 rounded-xl ${m.winner === m.teamB ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
             <div class="truncate pr-2">
               <div class="font-bold text-xs text-white truncate">${teamB.name}</div>
               <div class="text-[10px] text-slate-400 truncate">${teamB.membersText}</div>
             </div>
-            <div class="font-mono text-base font-extrabold text-rose-400">${setsWon.b}</div>
+            <div class="font-mono text-lg font-black text-rose-400">${setsWon.b}</div>
           </div>
 
           <!-- Điểm các set -->
-          <div class="flex items-center justify-center gap-2 pt-1 font-mono text-xs text-slate-300">
+          <div class="flex items-center justify-center gap-1.5 pt-1 font-mono text-xs text-slate-300">
             ${scores.map((s, idx) => `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700">S${idx+1}: ${s.a}-${s.b}</span>`).join('')}
           </div>
         </div>
@@ -231,10 +270,10 @@ function renderAdminMatches() {
         <!-- Nút thao tác -->
         <div class="pt-2 border-t border-slate-700/60 flex gap-2">
           <button 
-            class="btn-open-score w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow"
+            class="btn-open-score w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow"
             data-match-id="${m.id}"
           >
-            <i class="fa-solid fa-pen-to-square"></i> Nhập Điểm
+            <i class="fa-solid fa-pen-to-square"></i> Nhập Điểm Trận ${m.id}
           </button>
         </div>
 
@@ -244,7 +283,6 @@ function renderAdminMatches() {
 
   container.innerHTML = html;
 
-  // Gắn sự kiện click mở modal nhập điểm
   container.querySelectorAll('.btn-open-score').forEach(btn => {
     btn.addEventListener('click', () => {
       openScoreModal(btn.dataset.matchId);
@@ -253,7 +291,70 @@ function renderAdminMatches() {
 }
 
 /**
- * 5. MODAL NHẬP ĐIỂM CHI TIẾT
+ * 5. CÁC NÚT TĂNG GIẢM ĐIỂM NHANH (+1, -1) TRÊN MOBILE
+ */
+function setupStepButtons() {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-step');
+    if (!btn) return;
+
+    const targetId = btn.dataset.target;
+    const step = parseInt(btn.dataset.step) || 0;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+
+    let val = parseInt(input.value) || 0;
+    val = Math.max(0, Math.min(99, val + step));
+    input.value = val;
+
+    autoCheckSetWinners();
+  });
+
+  // Tự động kiểm tra tỷ số khi người dùng gõ phím trực tiếp
+  ['input-s1-a', 'input-s1-b', 'input-s2-a', 'input-s2-b', 'input-s3-a', 'input-s3-b'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('input', autoCheckSetWinners);
+    }
+  });
+}
+
+function autoCheckSetWinners() {
+  const s1a = parseInt(document.getElementById('input-s1-a')?.value) || 0;
+  const s1b = parseInt(document.getElementById('input-s1-b')?.value) || 0;
+  const s2a = parseInt(document.getElementById('input-s2-a')?.value) || 0;
+  const s2b = parseInt(document.getElementById('input-s2-b')?.value) || 0;
+  const s3a = parseInt(document.getElementById('input-s3-a')?.value) || 0;
+  const s3b = parseInt(document.getElementById('input-s3-b')?.value) || 0;
+
+  const targetPts = parseInt(tournamentData.settings?.pointsPerSet) || 15;
+
+  let setsWonA = 0;
+  let setsWonB = 0;
+
+  if (s1a >= targetPts && s1a > s1b) setsWonA++;
+  else if (s1b >= targetPts && s1b > s1a) setsWonB++;
+
+  if (s2a >= targetPts && s2a > s2b) setsWonA++;
+  else if (s2b >= targetPts && s2b > s2a) setsWonB++;
+
+  if (s3a >= targetPts && s3a > s3b) setsWonA++;
+  else if (s3b >= targetPts && s3b > s3a) setsWonB++;
+
+  const statusSelect = document.getElementById('modal-match-status');
+  if (statusSelect) {
+    if (setsWonA === 2 || setsWonB === 2) {
+      statusSelect.value = 'completed';
+    } else if (s1a > 0 || s1b > 0) {
+      if (statusSelect.value === 'scheduled') {
+        statusSelect.value = 'playing';
+      }
+    }
+  }
+}
+
+/**
+ * 6. MODAL NHẬP ĐIỂM CHI TIẾT
  */
 function setupScoreModal() {
   const modal = document.getElementById('score-modal');
@@ -273,6 +374,7 @@ function setupScoreModal() {
       document.getElementById('input-s2-b').value = '0';
       document.getElementById('input-s3-a').value = '0';
       document.getElementById('input-s3-b').value = '0';
+      document.getElementById('modal-match-status').value = 'scheduled';
     });
   }
 
@@ -292,7 +394,6 @@ function setupScoreModal() {
       const match = tournamentData.matches[currentEditingMatchId];
       if (!match) return;
 
-      // Tính số set thắng
       let setsWonA = 0;
       let setsWonB = 0;
 
@@ -305,7 +406,6 @@ function setupScoreModal() {
       if (s3a > s3b) setsWonA++;
       else if (s3b > s3a) setsWonB++;
 
-      // Xác định đội thắng
       let winner = null;
       if (status === 'completed') {
         if (setsWonA > setsWonB) winner = match.teamA;
@@ -325,10 +425,11 @@ function setupScoreModal() {
 
       await updateMatchScore(currentEditingMatchId, updateData);
 
-      // Tự động kiểm tra cập nhật Knockout nếu tất cả trận vòng bảng đã xong
-      checkAndUpdateKnockoutBrackets();
+      // Tự động kiểm tra cập nhật Knockout
+      await checkAndUpdateKnockoutBrackets();
 
       modal.classList.add('hidden');
+      showToast(`Đã lưu kết quả Trận ${currentEditingMatchId} thành công!`);
     });
   }
 }
@@ -347,6 +448,9 @@ function openScoreModal(matchId) {
   document.getElementById('modal-team-a-name').textContent = teamA.name;
   document.getElementById('modal-team-b-name').textContent = teamB.name;
 
+  const targetPts = tournamentData.settings?.pointsPerSet || 15;
+  document.querySelectorAll('.modal-target-pts').forEach(el => el.textContent = targetPts);
+
   const scores = match.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
   document.getElementById('input-s1-a').value = scores[0]?.a || 0;
   document.getElementById('input-s1-b').value = scores[0]?.b || 0;
@@ -361,7 +465,7 @@ function openScoreModal(matchId) {
 }
 
 /**
- * 6. RENDER & CHỈNH SỬA 10 ĐỘI HÌNH
+ * 7. RENDER & CHỈNH SỬA 10 ĐỘI HÌNH
  */
 function renderAdminTeams() {
   const container = document.getElementById('admin-teams-container');
@@ -379,38 +483,41 @@ function renderAdminTeams() {
     ];
 
     html += `
-      <div class="bg-slate-800 rounded-2xl border ${isX ? 'border-blue-500/40' : 'border-rose-500/40'} p-4 space-y-3">
+      <div class="bg-slate-800 rounded-3xl border ${isX ? 'border-blue-500/40' : 'border-rose-500/40'} p-5 space-y-3">
         <div class="flex items-center justify-between pb-2 border-b border-slate-700">
-          <span class="w-7 h-7 rounded-lg ${isX ? 'bg-blue-600' : 'bg-rose-600'} text-white font-bold flex items-center justify-center text-xs">
-            ${team.code || team.id}
-          </span>
-          <span class="text-xs text-slate-400">Bảng ${isX ? 'Xanh (X)' : 'Đỏ (Đ)'}</span>
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl ${isX ? 'bg-blue-600' : 'bg-rose-600'} text-white font-black flex items-center justify-center text-xs">
+              ${team.code || team.id}
+            </span>
+            <span class="font-bold text-white text-sm">${team.name}</span>
+          </div>
+          <span class="text-xs ${isX ? 'text-blue-400' : 'text-rose-400'} font-bold">Bảng ${isX ? 'X (Xanh)' : 'Đ (Đỏ)'}</span>
         </div>
 
-        <form class="team-edit-form space-y-2 text-xs" data-team-id="${team.id}">
+        <form class="team-edit-form space-y-3 text-xs" data-team-id="${team.id}">
           <div>
             <label class="block text-slate-400 font-semibold mb-1">Tên Đội</label>
-            <input type="text" class="team-input-name w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white" value="${team.name}">
+            <input type="text" class="team-input-name w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-blue-500" value="${team.name}">
           </div>
 
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block text-slate-400 text-[10px] mb-1">VĐV 1 (A)</label>
-              <input type="text" class="team-input-m0 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white" value="${members[0]?.name || ''}">
+              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 1 (A - Nam)</label>
+              <input type="text" class="team-input-m0 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[0]?.name || ''}">
             </div>
             <div>
-              <label class="block text-slate-400 text-[10px] mb-1">VĐV 2 (a)</label>
-              <input type="text" class="team-input-m1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white" value="${members[1]?.name || ''}">
+              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 2 (a - Nam)</label>
+              <input type="text" class="team-input-m1 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[1]?.name || ''}">
             </div>
             <div>
-              <label class="block text-slate-400 text-[10px] mb-1">VĐV 3 (b)</label>
-              <input type="text" class="team-input-m2 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white" value="${members[2]?.name || ''}">
+              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 3 (b - Nữ)</label>
+              <input type="text" class="team-input-m2 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[2]?.name || ''}">
             </div>
           </div>
 
           <div class="pt-1 text-right">
-            <button type="submit" class="py-1.5 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs transition">
-              <i class="fa-solid fa-floppy-disk"></i> Lưu Đội ${team.code || team.id}
+            <button type="submit" class="py-2 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs transition flex items-center gap-1.5 ml-auto">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu Thay Đổi Đội ${team.code || team.id}
             </button>
           </div>
         </form>
@@ -420,7 +527,6 @@ function renderAdminTeams() {
 
   container.innerHTML = html;
 
-  // Gắn sự kiện submit cho từng form đội
   container.querySelectorAll('.team-edit-form').forEach(form => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -439,66 +545,79 @@ function renderAdminTeams() {
         ]
       });
 
-      alert(`Đã cập nhật thông tin Đội ${teamId} thành công!`);
+      showToast(`Đã cập nhật thông tin Đội ${teamId} thành công!`);
     });
   });
 }
 
 /**
- * 7. RENDER & CHỈNH SỬA LỊCH & SÂN ĐẤU
+ * 8. RENDER & CHỈNH SỬA LỊCH & SÂN ĐẤU
  */
 function renderAdminSchedule() {
   const container = document.getElementById('admin-schedule-table-container');
   if (!container) return;
 
   const matches = Object.values(tournamentData.matches || {});
+  const teams = Object.values(tournamentData.teams || {});
+
   let html = `
     <div class="overflow-x-auto">
       <table class="w-full text-xs text-left text-slate-300">
         <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
           <tr>
-            <th class="py-2.5 px-3">Trận</th>
-            <th class="py-2.5 px-3">Giờ Đấu</th>
-            <th class="py-2.5 px-3">Sân</th>
-            <th class="py-2.5 px-3">Cặp Đấu</th>
-            <th class="py-2.5 px-3">Trạng Thái</th>
-            <th class="py-2.5 px-3 text-right">Lưu</th>
+            <th class="py-3 px-3">Trận</th>
+            <th class="py-3 px-3">Giờ Đấu</th>
+            <th class="py-3 px-3">Sân</th>
+            <th class="py-3 px-3">Cặp Đấu</th>
+            <th class="py-3 px-3">Trạng Thái</th>
+            <th class="py-3 px-3 text-right">Thao Tác</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-700/60">
   `;
 
   matches.forEach(m => {
-    const teamA = getTeamInfo(m.teamA, m.placeholderA);
-    const teamB = getTeamInfo(m.teamB, m.placeholderB);
+    const isKnockout = m.stage !== 'group';
 
     html += `
       <tr class="hover:bg-slate-700/30 transition schedule-row" data-match-id="${m.id}">
-        <td class="py-2 px-3 font-bold text-white">${m.id}</td>
-        <td class="py-2 px-3">
-          <input type="text" class="input-match-time w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-center text-white" value="${m.time}">
+        <td class="py-2.5 px-3 font-bold text-white">${m.id}</td>
+        <td class="py-2.5 px-3">
+          <input type="text" class="input-match-time w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-white" value="${m.time}">
         </td>
-        <td class="py-2 px-3">
-          <select class="select-match-court bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white">
+        <td class="py-2.5 px-3">
+          <select class="select-match-court bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white">
             <option value="1" ${m.court === 1 ? 'selected' : ''}>Sân 1</option>
             <option value="2" ${m.court === 2 ? 'selected' : ''}>Sân 2</option>
             <option value="3" ${m.court === 3 ? 'selected' : ''}>Sân 3</option>
           </select>
         </td>
-        <td class="py-2 px-3">
-          <span class="font-semibold text-white">${teamA.name}</span>
-          <span class="text-slate-400"> vs </span>
-          <span class="font-semibold text-white">${teamB.name}</span>
+        <td class="py-2.5 px-3">
+          ${isKnockout ? `
+            <span class="font-semibold text-white">${getTeamInfo(m.teamA, m.placeholderA).name}</span>
+            <span class="text-slate-400"> vs </span>
+            <span class="font-semibold text-white">${getTeamInfo(m.teamB, m.placeholderB).name}</span>
+          ` : `
+            <div class="flex items-center gap-1.5">
+              <select class="select-team-a bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white text-[11px] max-w-[130px]">
+                ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamA ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
+              </select>
+              <span class="text-slate-400">vs</span>
+              <select class="select-team-b bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white text-[11px] max-w-[130px]">
+                ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamB ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
+              </select>
+            </div>
+          `}
         </td>
-        <td class="py-2 px-3">
-          <select class="select-match-status bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white">
+        <td class="py-2.5 px-3">
+          <select class="select-match-status bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white">
             <option value="scheduled" ${m.status === 'scheduled' ? 'selected' : ''}>Sắp đấu</option>
             <option value="playing" ${m.status === 'playing' ? 'selected' : ''}>Đang đấu</option>
             <option value="completed" ${m.status === 'completed' ? 'selected' : ''}>Đã xong</option>
           </select>
         </td>
-        <td class="py-2 px-3 text-right">
-          <button class="btn-save-schedule py-1 px-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold transition" data-match-id="${m.id}">
+        <td class="py-2.5 px-3 text-right">
+          <button class="btn-save-schedule py-1 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition" data-match-id="${m.id}">
             Lưu
           </button>
         </td>
@@ -517,14 +636,21 @@ function renderAdminSchedule() {
       const court = parseInt(row.querySelector('.select-match-court').value) || 1;
       const status = row.querySelector('.select-match-status').value;
 
-      await updateMatchSchedule(matchId, { time, court, status });
-      alert(`Đã lưu lịch đấu trận ${matchId}!`);
+      const teamASelect = row.querySelector('.select-team-a');
+      const teamBSelect = row.querySelector('.select-team-b');
+
+      const updateData = { time, court, status };
+      if (teamASelect) updateData.teamA = teamASelect.value;
+      if (teamBSelect) updateData.teamB = teamBSelect.value;
+
+      await updateMatchSchedule(matchId, updateData);
+      showToast(`Đã lưu lịch đấu trận ${matchId}!`);
     });
   });
 }
 
 /**
- * 8. FORM CÀI ĐẶT THỂ THỨC
+ * 9. FORM CÀI ĐẶT THỂ THỨC
  */
 function fillSettingsForm() {
   const s = tournamentData.settings || {};
@@ -550,19 +676,40 @@ function setupSettingsForm() {
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
     const adminPin = document.getElementById('setting-admin-pin').value.trim() || "123456";
 
+    let pointsPerSet = 15;
+    let maxSets = 3;
+    let winSetsRequired = 2;
+
+    if (format === '3_sets_21') {
+      pointsPerSet = 21;
+      maxSets = 3;
+      winSetsRequired = 2;
+    } else if (format === '1_set_21') {
+      pointsPerSet = 21;
+      maxSets = 1;
+      winSetsRequired = 1;
+    } else if (format === '1_set_31') {
+      pointsPerSet = 31;
+      maxSets = 1;
+      winSetsRequired = 1;
+    }
+
     await updateSettings({
       tournamentName,
       format,
+      pointsPerSet,
+      maxSets,
+      winSetsRequired,
       pointsForWin,
       adminPin
     });
 
-    alert("Đã lưu cài đặt thể thức thành công!");
+    showToast("Đã lưu cài đặt thể thức thành công!");
   });
 }
 
 /**
- * 9. CÁC NÚT SEED VÀ RESET DATABASE
+ * 10. CÁC NÚT SEED VÀ RESET DATABASE
  */
 function setupDatabaseActionButtons() {
   const btnSeed = document.getElementById('btn-seed-data');
@@ -570,10 +717,10 @@ function setupDatabaseActionButtons() {
 
   if (btnSeed) {
     btnSeed.addEventListener('click', async () => {
-      const confirmSeed = confirm("Bạn có chắc chắn muốn nạp dữ liệu gốc 10 đội & 24 trận lên Database? Tỷ số các trận sẽ được đặt lại ban đầu.");
+      const confirmSeed = confirm("Bạn có chắc chắn muốn nạp lại dữ liệu gốc 10 đội & 24 trận lên Database? Tỷ số các trận sẽ được đặt lại ban đầu.");
       if (confirmSeed) {
         await seedDatabase();
-        alert("Đã nạp thành công 10 Đội & 24 Trận lên Database!");
+        showToast("Đã nạp thành công 10 Đội & 24 Trận lên Database!");
       }
     });
   }
@@ -591,7 +738,7 @@ function setupDatabaseActionButtons() {
             status: "scheduled"
           });
         }
-        alert("Đã reset tỷ số toàn bộ các trận!");
+        showToast("Đã reset tỷ số toàn bộ các trận!");
       }
     });
   }
@@ -606,18 +753,15 @@ async function checkAndUpdateKnockoutBrackets() {
   const allGroupDone = groupMatches.length === 20 && groupMatches.every(m => m.status === 'completed');
 
   if (allGroupDone) {
-    // Tính xếp hạng Top 2 mỗi bảng
     const topX = getGroupTopTeams('X');
     const topD = getGroupTopTeams('D');
 
     if (topX.length >= 2 && topD.length >= 2) {
-      // BK1 (M21): Nhất X (MIA1) vs Nhì Đ (MIB2)
       await updateMatchSchedule('M21', {
         teamA: topX[0].id,
         teamB: topD[1].id
       });
 
-      // BK2 (M22): Nhất Đ (MIB1) vs Nhì X (MIA2)
       await updateMatchSchedule('M22', {
         teamA: topD[0].id,
         teamB: topX[1].id
@@ -625,7 +769,6 @@ async function checkAndUpdateKnockoutBrackets() {
     }
   }
 
-  // Khi 2 trận Bán kết xong -> Điền vào Chung kết (M24) và Tranh 3-4 (M23)
   const bk1 = matches['M21'];
   const bk2 = matches['M22'];
 
@@ -633,13 +776,11 @@ async function checkAndUpdateKnockoutBrackets() {
     const loser1 = bk1.winner === bk1.teamA ? bk1.teamB : bk1.teamA;
     const loser2 = bk2.winner === bk2.teamA ? bk2.teamB : bk2.teamA;
 
-    // Chung kết (M24)
     await updateMatchSchedule('M24', {
       teamA: bk1.winner,
       teamB: bk2.winner
     });
 
-    // Tranh 3-4 (M23)
     await updateMatchSchedule('M23', {
       teamA: loser1,
       teamB: loser2

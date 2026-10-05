@@ -287,38 +287,74 @@
         </div>
 
         <!-- Set 1 -->
-        <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/50">
-          <div class="text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
-            <span>Set 1</span>
-            <span class="text-[10px] text-slate-500">Mục tiêu: <span class="modal-target-pts">15</span> điểm</span>
+        <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/60">
+          <div class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Set 1</span>
+            <span class="text-[10px] text-slate-400 font-normal">Mục tiêu: <span class="modal-target-pts font-bold text-amber-400">15</span> điểm</span>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <input type="number" id="input-s1-a" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-blue-400" placeholder="0">
-            <input type="number" id="input-s1-b" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-rose-400" placeholder="0">
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s1-a" data-step="-1">-1</button>
+                <input type="number" id="input-s1-a" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-blue-400 focus:ring-2 focus:ring-blue-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs font-bold" data-target="input-s1-a" data-step="1">+1</button>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s1-b" data-step="-1">-1</button>
+                <input type="number" id="input-s1-b" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-rose-400 focus:ring-2 focus:ring-rose-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 text-xs font-bold" data-target="input-s1-b" data-step="1">+1</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Set 2 -->
-        <div id="modal-set-2-container" class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/50">
-          <div class="text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
-            <span>Set 2</span>
-            <span class="text-[10px] text-slate-500">Mục tiêu: <span class="modal-target-pts">15</span> điểm</span>
+        <div id="modal-set-2-container" class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/60">
+          <div class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Set 2</span>
+            <span class="text-[10px] text-slate-400 font-normal">Mục tiêu: <span class="modal-target-pts font-bold text-amber-400">15</span> điểm</span>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <input type="number" id="input-s2-a" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-blue-400" placeholder="0">
-            <input type="number" id="input-s2-b" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-rose-400" placeholder="0">
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s2-a" data-step="-1">-1</button>
+                <input type="number" id="input-s2-a" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-blue-400 focus:ring-2 focus:ring-blue-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs font-bold" data-target="input-s2-a" data-step="1">+1</button>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s2-b" data-step="-1">-1</button>
+                <input type="number" id="input-s2-b" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-rose-400 focus:ring-2 focus:ring-rose-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 text-xs font-bold" data-target="input-s2-b" data-step="1">+1</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Set 3 -->
-        <div id="modal-set-3-container" class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/50">
-          <div class="text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
-            <span>Set 3 (Nếu hòa 1-1)</span>
-            <span class="text-[10px] text-slate-500">Mục tiêu: <span class="modal-target-pts">15</span> điểm</span>
+        <div id="modal-set-3-container" class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/60">
+          <div class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Set 3 (Nếu hòa 1-1)</span>
+            <span class="text-[10px] text-slate-400 font-normal">Mục tiêu: <span class="modal-target-pts font-bold text-amber-400">15</span> điểm</span>
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <input type="number" id="input-s3-a" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-blue-400" placeholder="0">
-            <input type="number" id="input-s3-b" min="0" max="99" class="text-center font-bold text-lg py-2 rounded-lg bg-slate-900 border border-slate-700 text-rose-400" placeholder="0">
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s3-a" data-step="-1">-1</button>
+                <input type="number" id="input-s3-a" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-blue-400 focus:ring-2 focus:ring-blue-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs font-bold" data-target="input-s3-a" data-step="1">+1</button>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold" data-target="input-s3-b" data-step="-1">-1</button>
+                <input type="number" id="input-s3-b" min="0" max="99" class="w-full text-center font-black text-xl py-2 rounded-xl bg-slate-950 border border-slate-700 text-rose-400 focus:ring-2 focus:ring-rose-500" value="0">
+                <button type="button" class="btn-step px-2 py-2 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 text-xs font-bold" data-target="input-s3-b" data-step="1">+1</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -344,6 +380,9 @@
       </form>
     </div>
   </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Admin Script Module -->
   <script type="module" src="js/admin.js"></script>
