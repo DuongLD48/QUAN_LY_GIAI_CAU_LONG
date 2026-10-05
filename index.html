@@ -77,6 +77,10 @@
 
         <!-- Admin & Quick Actions -->
         <div class="flex items-center space-x-2">
+          <button id="btn-tv-mode" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold tracking-wide transition shadow-sm" title="Bật/Tắt chế độ TV toàn màn hình">
+            <i class="fa-solid fa-tv text-amber-300"></i>
+            <span class="hidden sm:inline">Chế Độ TV</span>
+          </button>
           <a href="admin.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold tracking-wide transition shadow-sm">
             <i class="fa-solid fa-shield-halved"></i>
             <span class="hidden sm:inline">Quản Trị</span>
@@ -148,15 +152,27 @@
           <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Toàn bộ 24 trận đấu của giải</p>
         </div>
         
-        <!-- Filters -->
-        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-          <button class="filter-btn active px-3 py-1.5 rounded-lg bg-blue-600 text-white" data-filter="all">Tất cả (24)</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" data-filter="court-1">Sân 1</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" data-filter="court-2">Sân 2</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" data-filter="court-3">Sân 3</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800 border border-blue-200" data-filter="group-x">Bảng X (Xanh)</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-200" data-filter="group-d">Bảng Đ (Đỏ)</button>
-          <button class="filter-btn px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-200" data-filter="knockout">Playoffs</button>
+        <!-- Search & Filters -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+          <div class="relative min-w-[220px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input 
+              type="text" 
+              id="schedule-search-input" 
+              placeholder="Tìm tên VĐV hoặc mã đội (Toàn, Đ1...)" 
+              class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition"
+            >
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+            <button class="filter-btn active px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-sm transition" data-filter="all">Tất cả</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition" data-filter="court-1">Sân 1</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition" data-filter="court-2">Sân 2</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition" data-filter="court-3">Sân 3</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition" data-filter="group-x">Bảng X</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition" data-filter="group-d">Bảng Đ</button>
+            <button class="filter-btn px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition" data-filter="knockout">Playoffs</button>
+          </div>
         </div>
       </div>
 
@@ -235,6 +251,18 @@
               </tbody>
             </table>
           </div>
+      </div>
+
+      <!-- Tiêu chí xếp hạng & Chú thích -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-2">
+          <i class="fa-solid fa-circle-info text-blue-600 text-sm mt-0.5 sm:mt-0"></i>
+          <span><b>Quy tắc xếp hạng:</b> 1. Điểm thắng trận &rarr; 2. Hiệu số Set (&Delta;Set) &rarr; 3. Hiệu số Điểm (&Delta;Điểm).</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+            <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Hạng 1 & 2: Vào Bán Kết
+          </span>
         </div>
       </div>
     </section>
