@@ -162,6 +162,10 @@ function updateDbBadge(mode) {
   }
 }
 
+if (typeof window !== 'undefined') {
+  window.updateDbBadge = updateDbBadge;
+}
+
 function setupPingTestButton() {
   const btnPing = document.getElementById('btn-ping-db');
   const pingBox = document.getElementById('ping-result-box');

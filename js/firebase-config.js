@@ -94,6 +94,9 @@ async function initDatabaseService() {
         if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
           window.updateDbBadge(isCloudConnected ? "firebase" : "local");
         }
+        if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
+          window.updateSyncIndicator(isCloudConnected ? "firebase" : "local");
+        }
       });
 
       return { mode: "firebase", db: firebaseDb, url: firebaseConfig.databaseURL };
