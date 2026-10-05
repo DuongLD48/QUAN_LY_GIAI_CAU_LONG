@@ -251,5 +251,5 @@ gantt
 - [x] Chuẩn bị dữ liệu hạt giống (Seed data 10 đội & lịch đấu) và xây dựng tính năng nạp 1-click vào Firebase Realtime Database.
 - [x] Hoàn thiện Giao diện Người xem (Viewer UI): Live 3 sân, Lịch đấu & Tìm kiếm VĐV, BXH tự động, Nhánh Knockout & Chế độ TV.
 - [x] Xây dựng giao diện Quản trị (Admin) cho phép chỉnh sửa thông tin 10 đội, VĐV, giờ đấu, sân đấu trực tiếp trên Database khi có sai sót.
-- [ ] Xây dựng tính năng Nhập điểm, Cài đặt thể thức & Đồng bộ Realtime.
-- [ ] Kiểm thử và Xuất bản lên GitHub Pages.
+- [x] Xây dựng tính năng Nhập điểm, Cài đặt thể thức & Đồng bộ Realtime.
+- [x] Kiểm thử toàn diện (43/43 Test Cases Passed), Tích hợp Trình tạo mã QR & Chuẩn bị Xuất bản lên GitHub Pages.
