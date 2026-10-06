@@ -3,24 +3,74 @@
  * Tương thích 100% khi mở trực tiếp file:// hoặc deploy trên GitHub Pages.
  */
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCrlYkefqmLHfoMgbqFLOrv75VWs-Zas5g",
-  authDomain: "quanlygiaicaulong.firebaseapp.com",
-  databaseURL: "https://quanlygiaicaulong-default-rtdb.firebaseio.com",
-  projectId: "quanlygiaicaulong",
-  storageBucket: "quanlygiaicaulong.firebasestorage.app",
-  messagingSenderId: "965253318515",
-  appId: "1:965253318515:web:4b722a6d22b329d1446706"
-};
+/**
+ * Đọc cấu hình Firebase từ các nguồn an toàn theo thứ tự:
+ * 1. window.FIREBASE_ENV (nạp từ js/firebase-env.js - file nằm trong .gitignore, không bị đẩy lên GitHub)
+ * 2. localStorage ('badminton_custom_firebase_config' do Quản trị viên nhập trên trình duyệt)
+ * 3. Fallback rỗng an toàn (không chứa secret keys)
+ */
+function getFirebaseConfig() {
+  // 1. Nạp từ window.FIREBASE_ENV
+  if (typeof window !== 'undefined' && window.FIREBASE_ENV && window.FIREBASE_ENV.apiKey && !window.FIREBASE_ENV.apiKey.includes('YOUR_')) {
+    return { ...window.FIREBASE_ENV };
+  }
+
+  // 2. Nạp từ cấu hình do Admin lưu trên trình duyệt (LocalStorage)
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('badminton_custom_firebase_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.apiKey && !parsed.apiKey.includes('YOUR_')) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Không thể đọc custom firebase config:", e);
+    }
+  }
+
+  // 3. Mặc định trống - 100% an toàn khi push lên GitHub
+  return {
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+}
+
+let firebaseConfig = getFirebaseConfig();
+
+function saveCustomFirebaseConfig(config) {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('badminton_custom_firebase_config', JSON.stringify(config));
+    firebaseConfig = getFirebaseConfig();
+    return true;
+  }
+  return false;
+}
+
+function clearCustomFirebaseConfig() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('badminton_custom_firebase_config');
+    firebaseConfig = getFirebaseConfig();
+    return true;
+  }
+  return false;
+}
 
 function isFirebaseConfigured() {
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) return false;
+  firebaseConfig = getFirebaseConfig();
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_") || firebaseConfig.apiKey.trim() === "") return false;
   
   if (!firebaseConfig.databaseURL && firebaseConfig.projectId) {
     firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`;
   }
 
-  return (
+  return Boolean(
     firebaseConfig.databaseURL &&
     !firebaseConfig.databaseURL.includes("YOUR_")
   );
@@ -285,6 +335,9 @@ async function updateSettings(newSettings) {
 
 // Gán toàn cục vào window
 if (typeof window !== 'undefined') {
+  window.getFirebaseConfig = getFirebaseConfig;
+  window.saveCustomFirebaseConfig = saveCustomFirebaseConfig;
+  window.clearCustomFirebaseConfig = clearCustomFirebaseConfig;
   window.firebaseConfig = firebaseConfig;
   window.isFirebaseConfigured = isFirebaseConfigured;
   window.initDatabaseService = initDatabaseService;
@@ -301,6 +354,9 @@ if (typeof window !== 'undefined') {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    getFirebaseConfig,
+    saveCustomFirebaseConfig,
+    clearCustomFirebaseConfig,
     firebaseConfig,
     isFirebaseConfigured,
     initDatabaseService,

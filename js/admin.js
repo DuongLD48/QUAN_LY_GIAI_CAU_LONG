@@ -22,6 +22,7 @@ async function startAdminApp() {
   setupDatabaseActionButtons();
   setupAdminQrModal();
   setupPingTestButton();
+  setupCustomFirebaseConfigForm();
 
   // Khởi tạo Database Service
   const dbInfo = await window.initDatabaseService();
@@ -209,6 +210,90 @@ function setupPingTestButton() {
     btnPing.disabled = false;
     btnPing.innerHTML = `<i class="fa-solid fa-signal"></i> Ping Test`;
   });
+}
+
+/**
+ * CẤU HÌNH FIREBASE TÙY CHỌN (LƯU TRÊN TRÌNH DUYỆT - GIẤU KHỎI GITHUB)
+ */
+function setupCustomFirebaseConfigForm() {
+  const inputApiKey = document.getElementById('input-custom-api-key');
+  const inputProjectId = document.getElementById('input-custom-project-id');
+  const inputDbUrl = document.getElementById('input-custom-db-url');
+  const btnSave = document.getElementById('btn-save-custom-firebase');
+  const btnClear = document.getElementById('btn-clear-custom-firebase');
+
+  if (!inputApiKey || !btnSave) return;
+
+  // Hiển thị cấu hình đang có (nếu có)
+  const currentConfig = window.getFirebaseConfig ? window.getFirebaseConfig() : window.firebaseConfig;
+  if (currentConfig && currentConfig.apiKey && !currentConfig.apiKey.includes('YOUR_')) {
+    inputApiKey.value = currentConfig.apiKey;
+    inputProjectId.value = currentConfig.projectId || '';
+    inputDbUrl.value = currentConfig.databaseURL || '';
+  }
+
+  // Khi bấm Lưu
+  btnSave.addEventListener('click', async () => {
+    const apiKey = inputApiKey.value.trim();
+    const projectId = inputProjectId.value.trim();
+    let databaseURL = inputDbUrl.value.trim();
+
+    if (!apiKey) {
+      showToast("Vui lòng nhập API Key Firebase!", "error");
+      inputApiKey.focus();
+      return;
+    }
+
+    if (!projectId && !databaseURL) {
+      showToast("Vui lòng nhập Project ID hoặc Database URL!", "error");
+      inputProjectId.focus();
+      return;
+    }
+
+    if (!databaseURL && projectId) {
+      databaseURL = `https://${projectId}-default-rtdb.firebaseio.com`;
+      inputDbUrl.value = databaseURL;
+    }
+
+    const configToSave = {
+      apiKey: apiKey,
+      projectId: projectId || "quanlygiaicaulong",
+      databaseURL: databaseURL,
+      authDomain: projectId ? `${projectId}.firebaseapp.com` : "",
+      storageBucket: projectId ? `${projectId}.firebasestorage.app` : ""
+    };
+
+    if (window.saveCustomFirebaseConfig) {
+      window.saveCustomFirebaseConfig(configToSave);
+      showToast("Đã lưu cấu hình Firebase an toàn vào trình duyệt!");
+
+      // Thử khởi tạo lại kết nối ngay
+      btnSave.disabled = true;
+      btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...`;
+      
+      const dbInfo = await window.initDatabaseService();
+      updateDbBadge(dbInfo?.mode || 'local');
+      
+      btnSave.disabled = false;
+      btnSave.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Lưu & Kết Nối Cloud`;
+    }
+  });
+
+  // Khi bấm Xóa
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      if (confirm("Bạn có chắc chắn muốn xóa cấu hình Firebase đã lưu trên trình duyệt này không?")) {
+        if (window.clearCustomFirebaseConfig) {
+          window.clearCustomFirebaseConfig();
+        }
+        inputApiKey.value = '';
+        inputProjectId.value = '';
+        inputDbUrl.value = '';
+        showToast("Đã xóa cấu hình Firebase khỏi trình duyệt. Web chuyển về Local.");
+        setTimeout(() => location.reload(), 800);
+      }
+    });
+  }
 }
 
 /**

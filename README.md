@@ -47,18 +47,20 @@ Hệ thống có sẵn cơ chế **Fallback Local** để bạn trải nghiệm 
 2. Bấm **"Add Project"** (Tạo dự án mới), đặt tên bất kỳ (ví dụ: `giai-cau-long-2026`).
 3. Trong menu bên trái, chọn **Build > Realtime Database** > bấm **"Create Database"** > chọn vị trí `Singapore (asia-southeast1)` > chọn chế độ **Start in test mode** (hoặc đặt rules read/write công khai).
 4. Vào biểu tượng **Bánh răng (Project Settings)** > kéo xuống mục **Your apps** > bấm biểu tượng Web `</>` để đăng ký app.
-5. Copy đoạn cấu hình `firebaseConfig` và dán vào file [`js/firebase-config.js`](js/firebase-config.js):
-   ```javascript
-   export const firebaseConfig = {
-     apiKey: "AIzaSy...",
-     authDomain: "giai-cau-long.firebaseapp.com",
-     databaseURL: "https://giai-cau-long-default-rtdb.asia-southeast1.firebasedatabase.app",
-     projectId: "giai-cau-long",
-     storageBucket: "giai-cau-long.appspot.com",
-     messagingSenderId: "...",
-     appId: "..."
-   };
-   ```
+5. **Bảo mật cấu hình khi đưa lên GitHub**:
+   - **Cách 1 (Khuyên dùng khi chạy Local/Dev)**: Sao chép file `js/firebase-env.example.js` thành `js/firebase-env.js` (file này đã được chặn bởi `.gitignore` nên tuyệt đối an toàn, không bao giờ bị đẩy lên GitHub):
+     ```javascript
+     window.FIREBASE_ENV = {
+       apiKey: "YOUR_API_KEY_HERE",
+       authDomain: "giai-cau-long.firebaseapp.com",
+       databaseURL: "https://giai-cau-long-default-rtdb.firebaseio.com",
+       projectId: "giai-cau-long",
+       storageBucket: "giai-cau-long.firebasestorage.app",
+       messagingSenderId: "...",
+       appId: "..."
+     };
+     ```
+   - **Cách 2 (Khi deploy GitHub Pages)**: Sau khi deploy, truy cập vào `admin.html` > vào tab **Cài Đặt & Thể Thức** > nhập API Key và Project ID vào mục **"Cấu Hình Bảo Mật"** > Bấm **"Lưu & Kết Nối Cloud"**. Cấu hình sẽ lưu an toàn ngay trên trình duyệt của bạn mà repo GitHub vẫn sạch 100% không lộ bất kỳ thông tin nào!
 6. Vào trang `admin.html` > Bấm **"Nạp Dữ Liệu Gốc 10 Đội & 24 Trận"** để đẩy toàn bộ dữ liệu lên Firebase!
 
 ---

@@ -1,7 +1,43 @@
-# Dependencies & OS files
-.DS_Store
-Thumbs.db
+# ========================================================
+# BẢO MẬT: GIẤU CÁC FILE CHỨA THÔNG TIN NHẠY CẢM & API KEYS
+# ========================================================
+
+# File chứa API key và config bí mật (Local only)
+js/firebase-env.js
+js/config.local.js
+js/*-local.js
+
+# Các file biến môi trường
+.env
+.env.local
+.env.*.local
+*.env
+
+# Các file credentials, service accounts, token, private keys
+*.pem
+*.key
+*.cert
+*credential*.json
+*secret*.json
+service-account*.json
+firebase-adminsdk*.json
+
+# Dependencies & Package managers
 node_modules/
+package-lock.json
+
+# IDE & Editor settings
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files & Logs
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
