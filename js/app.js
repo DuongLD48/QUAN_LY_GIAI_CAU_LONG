@@ -265,12 +265,12 @@ function renderLiveCourts() {
 
     if (!activeMatch) {
       html += `
-        <div class="court-card bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+        <div class="court-card bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col justify-between">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <span class="font-extrabold text-base text-slate-800">SÂN ${courtNumber}</span>
             <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">Trống</span>
           </div>
-          <div class="py-12 text-center text-slate-400 text-sm">
+          <div class="py-10 text-center text-slate-400 text-sm">
             <i class="fa-solid fa-moon text-3xl mb-2 text-slate-300"></i>
             <p>Hiện không có trận đấu</p>
           </div>
@@ -285,24 +285,55 @@ function renderLiveCourts() {
     const isLive = activeMatch.status === 'playing';
     const isCompleted = activeMatch.status === 'completed';
 
+    const formatInfo = window.getMatchFormat ? window.getMatchFormat(activeMatch, tournamentData.settings) : {
+      isGroup: activeMatch.stage === 'group',
+      maxSets: activeMatch.stage === 'group' ? 1 : 3,
+      targetPts: activeMatch.stage === 'group' ? 21 : 15,
+      label: activeMatch.stage === 'group' ? "1 set 21" : "3 set 15"
+    };
+
     // Badge trạng thái
     let statusBadge = '';
     if (isLive) {
-      statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-600 border border-rose-200 shadow-sm animate-pulse">
+      statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-600 border border-rose-200 shadow-sm animate-pulse">
         <span class="live-indicator"></span> ĐANG ĐẤU
       </span>`;
     } else if (isCompleted) {
-      statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
-        <i class="fa-solid fa-circle-check mr-1"></i> ĐÃ KẾT THÚC
+      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+        <i class="fa-solid fa-check mr-1"></i> ĐÃ XONG
       </span>`;
     } else {
-      statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
         <i class="fa-regular fa-clock mr-1"></i> ${activeMatch.time}
       </span>`;
     }
 
     const scores = activeMatch.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
     const setsWon = activeMatch.setsWon || { a: 0, b: 0 };
+
+    // Tỷ số hiển thị theo bố cục tối giản như ảnh ví dụ: [15 - 7]
+    let scoreText = '';
+    let subDetailText = '';
+
+    if (formatInfo.isGroup) {
+      // VÒNG BẢNG: 1 set chạm 21 -> Hiển thị thẳng điểm số [A - B]
+      const s1 = scores[0] || { a: 0, b: 0 };
+      scoreText = `[${s1.a} - ${s1.b}]`;
+      subDetailText = `Thể thức: 1 set chạm 21`;
+    } else {
+      // VÒNG TRONG: 3 set chạm 15
+      if (isLive) {
+        // Đang diễn ra: hiển thị điểm set hiện tại
+        const setIdx = Math.min((setsWon.a + setsWon.b), 2);
+        const curScore = scores[setIdx] || { a: 0, b: 0 };
+        scoreText = `[${curScore.a} - ${curScore.b}]`;
+        subDetailText = `Đang đánh Set ${setIdx + 1} (Tỷ số set: ${setsWon.a}-${setsWon.b})`;
+      } else {
+        scoreText = `[${setsWon.a} - ${setsWon.b}]`;
+        const played = scores.filter(s => s.a > 0 || s.b > 0).map(s => `${s.a}-${s.b}`).join(', ');
+        subDetailText = played ? `Các set: ${played}` : `Thể thức: 3 set 15 (thắng 2)`;
+      }
+    }
 
     const courtColor = courtNumber === 1 
       ? 'from-blue-600 to-indigo-600' 
@@ -314,80 +345,63 @@ function renderLiveCourts() {
       <div class="court-card bg-white rounded-3xl shadow-sm border ${isLive ? 'border-blue-400 ring-4 ring-blue-500/10' : 'border-slate-200'} p-5 sm:p-6 flex flex-col justify-between" data-match-id="${activeMatch.id}">
         
         <!-- Header Sân -->
-        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
-          <div class="flex items-center gap-2.5">
-            <span class="w-8 h-8 rounded-xl bg-gradient-to-br ${courtColor} text-white font-extrabold text-sm flex items-center justify-center shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-gradient-to-br ${courtColor} text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
               ${courtNumber}
             </span>
             <div>
-              <div class="font-extrabold text-sm sm:text-base text-slate-800 leading-tight">SÂN THI ĐẤU ${courtNumber}</div>
-              <div class="text-[11px] text-slate-400 font-medium">Trận ${activeMatch.id} • ${activeMatch.time}</div>
+              <span class="font-extrabold text-sm text-slate-800">SÂN ${courtNumber}</span>
+              <span class="text-[11px] text-slate-400 ml-1.5 font-medium">Trận ${activeMatch.id}</span>
             </div>
           </div>
-          <div>${statusBadge}</div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+              ${formatInfo.label}
+            </span>
+            ${statusBadge}
+          </div>
         </div>
 
-        <!-- Bảng điểm trung tâm (Scoreboard) -->
-        <div class="py-4 space-y-3.5">
-          
-          <!-- Đội A -->
-          <div class="flex items-center justify-between p-3 rounded-2xl ${activeMatch.winner === activeMatch.teamA ? 'bg-emerald-50/80 border border-emerald-200 font-bold' : 'bg-slate-50/80 border border-slate-100'} transition">
-            <div class="flex items-center gap-3">
-              <span class="w-7 h-7 rounded-xl ${teamA.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-xs font-black flex items-center justify-center shadow-sm">
-                ${teamA.code}
-              </span>
-              <div class="pr-2">
-                <div class="text-sm font-bold text-slate-800 leading-snug">${teamA.name}</div>
-                <div class="text-[11px] text-slate-500 font-medium">${teamA.membersText}</div>
-              </div>
+        <!-- BẢNG ĐIỂM TỐI GIẢN CHÍNH XÁC THEO BỐ CỤC ẢNH MẪU -->
+        <div class="my-3 py-4 px-4 sm:px-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between shadow-inner">
+          <!-- Đội A (Bên Trái) -->
+          <div class="w-5/12 text-left">
+            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
+              ${teamA.code || teamA.id}
             </div>
-            <div class="text-right pl-2">
-              <span class="score-number text-2xl sm:text-3xl font-black ${activeMatch.winner === activeMatch.teamA ? 'text-emerald-600' : 'text-slate-800'}">
-                ${setsWon.a}
-              </span>
-              <span class="text-[9px] uppercase tracking-wider text-slate-400 block font-semibold">Set</span>
+            <div class="text-xs text-slate-400 font-medium truncate" title="${teamA.name}">
+              ${teamA.name}
             </div>
           </div>
 
-          <!-- Đội B -->
-          <div class="flex items-center justify-between p-3 rounded-2xl ${activeMatch.winner === activeMatch.teamB ? 'bg-emerald-50/80 border border-emerald-200 font-bold' : 'bg-slate-50/80 border border-slate-100'} transition">
-            <div class="flex items-center gap-3">
-              <span class="w-7 h-7 rounded-xl ${teamB.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-xs font-black flex items-center justify-center shadow-sm">
-                ${teamB.code}
-              </span>
-              <div class="pr-2">
-                <div class="text-sm font-bold text-slate-800 leading-snug">${teamB.name}</div>
-                <div class="text-[11px] text-slate-500 font-medium">${teamB.membersText}</div>
-              </div>
-            </div>
-            <div class="text-right pl-2">
-              <span class="score-number text-2xl sm:text-3xl font-black ${activeMatch.winner === activeMatch.teamB ? 'text-emerald-600' : 'text-slate-800'}">
-                ${setsWon.b}
-              </span>
-              <span class="text-[9px] uppercase tracking-wider text-slate-400 block font-semibold">Set</span>
+          <!-- Trung tâm: Giờ & Tỷ số [15 - 7] (Như ảnh tham khảo) -->
+          <div class="w-2/12 flex flex-col items-center justify-center text-center">
+            <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 text-[11px] font-mono font-bold border border-cyan-800/50 mb-1">
+              ${activeMatch.time}
+            </span>
+            <div class="text-xl sm:text-2xl font-mono font-black text-emerald-400 tracking-wider whitespace-nowrap">
+              ${scoreText}
             </div>
           </div>
 
-          <!-- Chi tiết từng Set (Set 1, Set 2, Set 3) -->
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-around gap-2 text-xs font-mono">
-            ${scores.map((s, idx) => `
-              <div class="flex-1 bg-slate-100/90 py-1.5 px-2 rounded-xl text-center border border-slate-200/60">
-                <span class="text-[10px] text-slate-500 block font-sans font-semibold">Set ${idx + 1}</span>
-                <span class="text-sm font-black ${s.a > s.b ? 'text-blue-600' : s.b > s.a ? 'text-rose-600' : 'text-slate-600'}">
-                  ${s.a} - ${s.b}
-                </span>
-              </div>
-            `).join('')}
+          <!-- Đội B (Bên Phải) -->
+          <div class="w-5/12 text-right">
+            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
+              ${teamB.code || teamB.id}
+            </div>
+            <div class="text-xs text-slate-400 font-medium truncate" title="${teamB.name}">
+              ${teamB.name}
+            </div>
           </div>
-
         </div>
 
         <!-- Footer Card -->
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
-          <span class="flex items-center gap-1">
-            <i class="fa-regular fa-clock"></i> Khởi tranh: <b>${activeMatch.time}</b>
+        <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span class="text-[11px] text-slate-500 font-mono">
+            ${subDetailText}
           </span>
-          <span class="text-slate-500 font-semibold truncate max-w-[140px] text-right">
+          <span class="text-slate-500 font-semibold truncate max-w-[150px] text-right">
             ${activeMatch.label || activeMatch.note || 'Vòng Bảng'}
           </span>
         </div>
@@ -464,49 +478,68 @@ function renderScheduleList() {
     const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
     const setsWon = m.setsWon || { a: 0, b: 0 };
 
+    const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
+      isGroup: m.stage === 'group',
+      maxSets: m.stage === 'group' ? 1 : 3,
+      targetPts: m.stage === 'group' ? 21 : 15,
+      label: m.stage === 'group' ? "1 set 21" : "3 set 15"
+    };
+
+    const s1 = scores[0] || { a: 0, b: 0 };
+    const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
+
     html += `
       <div class="bg-white rounded-2xl border ${isLive ? 'border-blue-400 shadow-md ring-2 ring-blue-500/20' : 'border-slate-200'} p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-slate-300 hover:shadow-sm" data-match-id="${m.id}">
         
-        <!-- Cột 1: Thông tin Trận, Giờ, Sân -->
+        <!-- Cột 1: Thông tin Trận, Giờ, Sân & Thể thức -->
         <div class="flex items-center space-x-3 sm:w-1/4">
           <div class="w-12 h-12 rounded-2xl ${m.court === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : m.court === 2 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} flex flex-col items-center justify-center font-black border shadow-xs">
             <span class="text-[10px] uppercase font-bold tracking-tight opacity-70">Sân</span>
             <span class="text-lg leading-none">${m.court}</span>
           </div>
           <div>
-            <div class="text-xs font-black text-slate-800">${m.time} • Trận ${m.id}</div>
+            <div class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+              <span>${m.time} • Trận ${m.id}</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 font-mono">${formatInfo.label}</span>
+            </div>
             <div class="text-[11px] text-slate-500 font-medium">${m.label || m.note || 'Vòng Bảng'}</div>
           </div>
         </div>
 
-        <!-- Cột 2: Cặp đấu & Tỷ số -->
+        <!-- Cột 2: Cặp đấu & Tỷ số (Tối giản chuẩn xác) -->
         <div class="flex-grow flex items-center justify-between sm:justify-center gap-3 sm:gap-6">
           <!-- Đội A -->
           <div class="text-right sm:w-5/12 ${m.winner === m.teamA ? 'font-bold text-emerald-700' : 'text-slate-800'}">
             <div class="text-xs sm:text-sm font-bold flex items-center justify-end gap-1.5">
-              <span>${teamA.name}</span>
-              <span class="w-5 h-5 rounded-md ${teamA.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center">
+              <span class="truncate max-w-[140px] sm:max-w-[170px]">${teamA.name}</span>
+              <span class="w-5 h-5 rounded-md ${teamA.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
                 ${teamA.code}
               </span>
             </div>
             <div class="text-[10px] text-slate-500 truncate max-w-[190px] ml-auto font-medium">${teamA.membersText}</div>
           </div>
 
-          <!-- Tỷ số Set -->
-          <div class="flex flex-col items-center justify-center min-w-[70px]">
-            <div class="px-3.5 py-1.5 rounded-xl ${isLive ? 'bg-rose-500 text-white font-black shadow-md' : 'bg-slate-100 text-slate-800 font-black'} text-base font-mono tracking-widest border border-slate-200">
-              ${setsWon.a} - ${setsWon.b}
+          <!-- Tỷ số Trung tâm [A - B] -->
+          <div class="flex flex-col items-center justify-center min-w-[76px]">
+            <div class="px-3 py-1 rounded-xl font-mono font-black text-base tracking-wider border shadow-xs ${
+              isLive 
+                ? 'bg-rose-500 text-white border-rose-600 animate-pulse' 
+                : formatInfo.isGroup 
+                ? 'bg-slate-900 text-emerald-400 border-slate-800' 
+                : 'bg-slate-100 text-slate-800 border-slate-200'
+            }">
+              ${formatInfo.isGroup ? `[${s1.a} - ${s1.b}]` : `[${setsWon.a} - ${setsWon.b}]`}
             </div>
-            ${isLive ? '<span class="live-indicator mt-1.5"></span>' : ''}
+            ${isLive ? '<span class="live-indicator mt-1"></span>' : ''}
           </div>
 
           <!-- Đội B -->
           <div class="text-left sm:w-5/12 ${m.winner === m.teamB ? 'font-bold text-emerald-700' : 'text-slate-800'}">
             <div class="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-              <span class="w-5 h-5 rounded-md ${teamB.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center">
+              <span class="w-5 h-5 rounded-md ${teamB.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
                 ${teamB.code}
               </span>
-              <span>${teamB.name}</span>
+              <span class="truncate max-w-[140px] sm:max-w-[170px]">${teamB.name}</span>
             </div>
             <div class="text-[10px] text-slate-500 truncate max-w-[190px] font-medium">${teamB.membersText}</div>
           </div>
@@ -514,10 +547,16 @@ function renderScheduleList() {
 
         <!-- Cột 3: Chi tiết các set & Trạng thái -->
         <div class="sm:w-1/4 flex sm:flex-col sm:items-end justify-between items-center text-xs">
-          <div class="flex items-center gap-1.5 font-mono text-slate-600">
-            ${scores.map(s => `<span class="bg-slate-100 px-2 py-0.5 rounded-lg text-[11px] font-semibold border border-slate-200/80">${s.a}-${s.b}</span>`).join('')}
+          <div class="font-mono text-slate-600">
+            ${
+              formatInfo.isGroup
+                ? `<span class="text-[11px] text-slate-400 font-sans italic">1 set chạm 21</span>`
+                : playedSets.length > 0
+                ? `<div class="flex items-center gap-1">${playedSets.map(s => `<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-200">${s.a}-${s.b}</span>`).join('')}</div>`
+                : `<span class="text-[11px] text-slate-400 font-sans italic">3 set 15</span>`
+            }
           </div>
-          <div class="mt-1.5">
+          <div class="mt-1">
             ${isLive 
               ? '<span class="text-rose-600 font-bold text-xs flex items-center gap-1.5"><span class="live-indicator"></span>Đang đấu</span>'
               : isCompleted

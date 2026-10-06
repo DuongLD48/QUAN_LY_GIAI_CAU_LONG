@@ -6,14 +6,43 @@
 
 const DEFAULT_SETTINGS = {
   tournamentName: "GIẢI CẦU LÔNG GIAO HƯU 2026",
-  format: "3_sets_15", // "3_sets_15", "3_sets_21", "1_set_21", "1_set_31"
-  pointsPerSet: 15,
-  maxSets: 3,
-  winSetsRequired: 2,
+  format: "mixed_group21_ko15", // Vòng bảng: 1 set 21; Vòng trong: 3 set 15
+  groupPointsPerSet: 21,
+  groupMaxSets: 1,
+  groupWinSetsRequired: 1,
+  knockoutPointsPerSet: 15,
+  knockoutMaxSets: 3,
+  knockoutWinSetsRequired: 2,
   pointsForWin: 1,
   pointsForLoss: 0,
   adminPin: "123456"
 };
+
+/**
+ * Xác định thể thức thi đấu chuẩn xác cho từng trận
+ * - Vòng bảng (M01 - M20): 1 set chạm 21
+ * - Vòng trong (M21 - M24: BK, CK, Tranh 3-4): 3 set chạm 15 (thắng 2)
+ */
+function getMatchFormat(match, settings = DEFAULT_SETTINGS) {
+  const isGroup = match?.stage === 'group' || (match?.id && parseInt(String(match.id).replace(/\D/g, '')) <= 20);
+  if (isGroup) {
+    return {
+      isGroup: true,
+      maxSets: 1,
+      targetPts: Number(settings?.groupPointsPerSet) || 21,
+      winSetsRequired: 1,
+      label: "1 set chạm 21"
+    };
+  } else {
+    return {
+      isGroup: false,
+      maxSets: 3,
+      targetPts: Number(settings?.knockoutPointsPerSet) || 15,
+      winSetsRequired: 2,
+      label: "3 set chạm 15"
+    };
+  }
+}
 
 const DEFAULT_TEAMS = {
   // === BẢNG X (XANH) ===
@@ -188,9 +217,10 @@ if (typeof window !== 'undefined') {
   window.DEFAULT_TEAMS = DEFAULT_TEAMS;
   window.DEFAULT_MATCHES = DEFAULT_MATCHES;
   window.getInitialDatabaseData = getInitialDatabaseData;
+  window.getMatchFormat = getMatchFormat;
 }
 
 // Hỗ trợ Node.js
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { DEFAULT_SETTINGS, DEFAULT_TEAMS, DEFAULT_MATCHES, getInitialDatabaseData };
+  module.exports = { DEFAULT_SETTINGS, DEFAULT_TEAMS, DEFAULT_MATCHES, getInitialDatabaseData, getMatchFormat };
 }

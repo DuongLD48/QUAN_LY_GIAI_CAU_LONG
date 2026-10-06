@@ -372,6 +372,16 @@ function renderAdminMatches() {
     const setsWon = m.setsWon || { a: 0, b: 0 };
     const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
 
+    const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
+      isGroup: m.stage === 'group',
+      maxSets: m.stage === 'group' ? 1 : 3,
+      targetPts: m.stage === 'group' ? 21 : 15,
+      label: m.stage === 'group' ? "1 set 21" : "3 set 15"
+    };
+
+    const s1 = scores[0] || { a: 0, b: 0 };
+    const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
+
     html += `
       <div class="bg-slate-800 rounded-3xl border ${isPlaying ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-700'} p-4 flex flex-col justify-between" data-match-id="${m.id}">
         
@@ -380,12 +390,13 @@ function renderAdminMatches() {
           <div class="flex items-center gap-2">
             <span class="font-bold text-white bg-slate-700 px-2 py-0.5 rounded">Trận ${m.id}</span>
             <span class="text-slate-400 font-medium">Sân ${m.court} • ${m.time}</span>
+            <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-800/40">${formatInfo.label}</span>
           </div>
           <div>
             ${isPlaying 
               ? '<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-full"><span class="live-indicator"></span> Đang đấu</span>'
               : isCompleted
-              ? '<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full"><i class="fa-solid fa-check"></i> Đã xong</span>'
+              ? '<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-check"></i> Đã xong</span>'
               : '<span class="text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">Chưa đấu</span>'
             }
           </div>
@@ -399,7 +410,9 @@ function renderAdminMatches() {
               <div class="font-bold text-xs text-white truncate">${teamA.name}</div>
               <div class="text-[10px] text-slate-400 truncate">${teamA.membersText}</div>
             </div>
-            <div class="font-mono text-lg font-black text-blue-400">${setsWon.a}</div>
+            <div class="font-mono text-lg font-black text-blue-400">
+              ${formatInfo.isGroup ? s1.a : setsWon.a}
+            </div>
           </div>
 
           <!-- Đội B -->
@@ -408,12 +421,20 @@ function renderAdminMatches() {
               <div class="font-bold text-xs text-white truncate">${teamB.name}</div>
               <div class="text-[10px] text-slate-400 truncate">${teamB.membersText}</div>
             </div>
-            <div class="font-mono text-lg font-black text-rose-400">${setsWon.b}</div>
+            <div class="font-mono text-lg font-black text-rose-400">
+              ${formatInfo.isGroup ? s1.b : setsWon.b}
+            </div>
           </div>
 
           <!-- Điểm các set -->
           <div class="flex items-center justify-center gap-1.5 pt-1 font-mono text-xs text-slate-300">
-            ${scores.map((s, idx) => `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700">S${idx+1}: ${s.a}-${s.b}</span>`).join('')}
+            ${
+              formatInfo.isGroup 
+                ? `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700 text-emerald-400 font-bold">[${s1.a} - ${s1.b}]</span>`
+                : playedSets.length > 0
+                ? playedSets.map((s, idx) => `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700">S${idx+1}: ${s.a}-${s.b}</span>`).join('')
+                : `<span class="text-slate-500 text-[11px]">3 set chạm 15</span>`
+            }
           </div>
         </div>
 
@@ -423,7 +444,7 @@ function renderAdminMatches() {
             class="btn-open-score w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow"
             data-match-id="${m.id}"
           >
-            <i class="fa-solid fa-pen-to-square"></i> Nhập Điểm Trận ${m.id}
+            <i class="fa-solid fa-pen-to-square"></i> Nhập Điểm Trận ${m.id} (${formatInfo.label})
           </button>
         </div>
 
@@ -470,6 +491,17 @@ function setupStepButtons() {
 }
 
 function autoCheckSetWinners() {
+  if (!currentEditingMatchId) return;
+  const match = tournamentData.matches[currentEditingMatchId];
+  if (!match) return;
+
+  const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
+    isGroup: match.stage === 'group',
+    maxSets: match.stage === 'group' ? 1 : 3,
+    targetPts: match.stage === 'group' ? 21 : 15,
+    winSetsRequired: match.stage === 'group' ? 1 : 2
+  };
+
   const s1a = parseInt(document.getElementById('input-s1-a')?.value) || 0;
   const s1b = parseInt(document.getElementById('input-s1-b')?.value) || 0;
   const s2a = parseInt(document.getElementById('input-s2-a')?.value) || 0;
@@ -477,28 +509,34 @@ function autoCheckSetWinners() {
   const s3a = parseInt(document.getElementById('input-s3-a')?.value) || 0;
   const s3b = parseInt(document.getElementById('input-s3-b')?.value) || 0;
 
-  const targetPts = parseInt(tournamentData.settings?.pointsPerSet) || 15;
-
-  let setsWonA = 0;
-  let setsWonB = 0;
-
-  if (s1a >= targetPts && s1a > s1b) setsWonA++;
-  else if (s1b >= targetPts && s1b > s1a) setsWonB++;
-
-  if (s2a >= targetPts && s2a > s2b) setsWonA++;
-  else if (s2b >= targetPts && s2b > s2a) setsWonB++;
-
-  if (s3a >= targetPts && s3a > s3b) setsWonA++;
-  else if (s3b >= targetPts && s3b > s3a) setsWonB++;
-
   const statusSelect = document.getElementById('modal-match-status');
-  if (statusSelect) {
-    if (setsWonA === 2 || setsWonB === 2) {
+  if (!statusSelect) return;
+
+  if (formatInfo.isGroup) {
+    // VÒNG BẢNG: 1 SET CHẠM 21
+    if (s1a >= formatInfo.targetPts || s1b >= formatInfo.targetPts) {
       statusSelect.value = 'completed';
     } else if (s1a > 0 || s1b > 0) {
-      if (statusSelect.value === 'scheduled') {
-        statusSelect.value = 'playing';
-      }
+      if (statusSelect.value === 'scheduled') statusSelect.value = 'playing';
+    }
+  } else {
+    // VÒNG TRONG: 3 SET CHẠM 15 (THẮNG 2)
+    let setsWonA = 0;
+    let setsWonB = 0;
+
+    if (s1a >= formatInfo.targetPts && s1a > s1b) setsWonA++;
+    else if (s1b >= formatInfo.targetPts && s1b > s1a) setsWonB++;
+
+    if (s2a >= formatInfo.targetPts && s2a > s2b) setsWonA++;
+    else if (s2b >= formatInfo.targetPts && s2b > s2a) setsWonB++;
+
+    if (s3a >= formatInfo.targetPts && s3a > s3b) setsWonA++;
+    else if (s3b >= formatInfo.targetPts && s3b > s3a) setsWonB++;
+
+    if (setsWonA >= 2 || setsWonB >= 2) {
+      statusSelect.value = 'completed';
+    } else if (s1a > 0 || s1b > 0 || s2a > 0 || s2b > 0 || s3a > 0 || s3b > 0) {
+      if (statusSelect.value === 'scheduled') statusSelect.value = 'playing';
     }
   }
 }
@@ -540,33 +578,60 @@ function setupScoreModal() {
       const s3a = parseInt(document.getElementById('input-s3-a').value) || 0;
       const s3b = parseInt(document.getElementById('input-s3-b').value) || 0;
 
-      const status = document.getElementById('modal-match-status').value;
+      let status = document.getElementById('modal-match-status').value;
       const match = tournamentData.matches[currentEditingMatchId];
       if (!match) return;
 
+      const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
+        isGroup: match.stage === 'group',
+        maxSets: match.stage === 'group' ? 1 : 3,
+        targetPts: match.stage === 'group' ? 21 : 15,
+        winSetsRequired: match.stage === 'group' ? 1 : 2
+      };
+
       let setsWonA = 0;
       let setsWonB = 0;
-
-      if (s1a > s1b) setsWonA++;
-      else if (s1b > s1a) setsWonB++;
-
-      if (s2a > s2b) setsWonA++;
-      else if (s2b > s2a) setsWonB++;
-
-      if (s3a > s3b) setsWonA++;
-      else if (s3b > s3a) setsWonB++;
-
       let winner = null;
-      if (status === 'completed') {
-        if (setsWonA > setsWonB) winner = match.teamA;
-        else if (setsWonB > setsWonA) winner = match.teamB;
+
+      if (formatInfo.isGroup) {
+        // VÒNG BẢNG: 1 SET CHẠM 21
+        if (s1a > s1b) setsWonA = 1;
+        else if (s1b > s1a) setsWonB = 1;
+
+        if (s1a >= formatInfo.targetPts || s1b >= formatInfo.targetPts) {
+          status = 'completed';
+        }
+
+        if (status === 'completed') {
+          if (s1a > s1b) winner = match.teamA;
+          else if (s1b > s1a) winner = match.teamB;
+        }
+      } else {
+        // VÒNG TRONG: 3 SET CHẠM 15
+        if (s1a > s1b) setsWonA++;
+        else if (s1b > s1a) setsWonB++;
+
+        if (s2a > s2b) setsWonA++;
+        else if (s2b > s2a) setsWonB++;
+
+        if (s3a > s3b) setsWonA++;
+        else if (s3b > s3a) setsWonB++;
+
+        if (setsWonA >= 2 || setsWonB >= 2) {
+          status = 'completed';
+        }
+
+        if (status === 'completed') {
+          if (setsWonA > setsWonB) winner = match.teamA;
+          else if (setsWonB > setsWonA) winner = match.teamB;
+        }
       }
 
       const updateData = {
         scores: [
           { a: s1a, b: s1b },
-          { a: s2a, b: s2b },
-          { a: s3a, b: s3b }
+          { a: formatInfo.isGroup ? 0 : s2a, b: formatInfo.isGroup ? 0 : s2b },
+          { a: formatInfo.isGroup ? 0 : s3a, b: formatInfo.isGroup ? 0 : s3b }
         ],
         setsWon: { a: setsWonA, b: setsWonB },
         status: status,
@@ -594,12 +659,31 @@ function openScoreModal(matchId) {
   const teamA = getTeamInfo(match.teamA, match.placeholderA);
   const teamB = getTeamInfo(match.teamB, match.placeholderB);
 
-  document.getElementById('modal-match-badge').textContent = `Trận ${match.id} • Sân ${match.court} • ${match.time}`;
+  const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
+    isGroup: match.stage === 'group',
+    maxSets: match.stage === 'group' ? 1 : 3,
+    targetPts: match.stage === 'group' ? 21 : 15,
+    label: match.stage === 'group' ? "1 set chạm 21" : "3 set chạm 15"
+  };
+
+  document.getElementById('modal-match-badge').textContent = `Trận ${match.id} • Sân ${match.court} • ${match.time} • ${formatInfo.label}`;
   document.getElementById('modal-team-a-name').textContent = teamA.name;
   document.getElementById('modal-team-b-name').textContent = teamB.name;
 
-  const targetPts = tournamentData.settings?.pointsPerSet || 15;
-  document.querySelectorAll('.modal-target-pts').forEach(el => el.textContent = targetPts);
+  document.querySelectorAll('.modal-target-pts').forEach(el => el.textContent = formatInfo.targetPts);
+
+  const set2Container = document.getElementById('modal-set-2-container');
+  const set3Container = document.getElementById('modal-set-3-container');
+
+  if (formatInfo.isGroup) {
+    // Ẩn set 2 và set 3 khi là vòng bảng (1 set chạm 21)
+    if (set2Container) set2Container.classList.add('hidden');
+    if (set3Container) set3Container.classList.add('hidden');
+  } else {
+    // Hiện set 2 và set 3 khi là vòng trong (3 set chạm 15)
+    if (set2Container) set2Container.classList.remove('hidden');
+    if (set3Container) set3Container.classList.remove('hidden');
+  }
 
   const scores = match.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
   document.getElementById('input-s1-a').value = scores[0]?.a || 0;
@@ -826,30 +910,48 @@ function setupSettingsForm() {
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
     const adminPin = document.getElementById('setting-admin-pin').value.trim() || "123456";
 
-    let pointsPerSet = 15;
-    let maxSets = 3;
-    let winSetsRequired = 2;
+    let groupPointsPerSet = 21;
+    let groupMaxSets = 1;
+    let groupWinSetsRequired = 1;
+    let knockoutPointsPerSet = 15;
+    let knockoutMaxSets = 3;
+    let knockoutWinSetsRequired = 2;
 
-    if (format === '3_sets_21') {
-      pointsPerSet = 21;
-      maxSets = 3;
-      winSetsRequired = 2;
+    if (format === '3_sets_15') {
+      groupPointsPerSet = 15;
+      groupMaxSets = 3;
+      groupWinSetsRequired = 2;
+      knockoutPointsPerSet = 15;
+      knockoutMaxSets = 3;
+      knockoutWinSetsRequired = 2;
     } else if (format === '1_set_21') {
-      pointsPerSet = 21;
-      maxSets = 1;
-      winSetsRequired = 1;
-    } else if (format === '1_set_31') {
-      pointsPerSet = 31;
-      maxSets = 1;
-      winSetsRequired = 1;
+      groupPointsPerSet = 21;
+      groupMaxSets = 1;
+      groupWinSetsRequired = 1;
+      knockoutPointsPerSet = 21;
+      knockoutMaxSets = 1;
+      knockoutWinSetsRequired = 1;
+    } else if (format === '3_sets_21') {
+      groupPointsPerSet = 21;
+      groupMaxSets = 3;
+      groupWinSetsRequired = 2;
+      knockoutPointsPerSet = 21;
+      knockoutMaxSets = 3;
+      knockoutWinSetsRequired = 2;
     }
 
     await updateSettings({
       tournamentName,
       format,
-      pointsPerSet,
-      maxSets,
-      winSetsRequired,
+      groupPointsPerSet,
+      groupMaxSets,
+      groupWinSetsRequired,
+      knockoutPointsPerSet,
+      knockoutMaxSets,
+      knockoutWinSetsRequired,
+      pointsPerSet: knockoutPointsPerSet,
+      maxSets: knockoutMaxSets,
+      winSetsRequired: knockoutWinSetsRequired,
       pointsForWin,
       adminPin
     });
@@ -901,44 +1003,28 @@ function setupDatabaseActionButtons() {
 
       showToast("Đang chạy mô phỏng toàn bộ giải đấu...", "info");
 
-      // 1. Mô phỏng 20 trận vòng bảng
+      // 1. Mô phỏng 20 trận vòng bảng: 1 set chạm 21
       const matches = tournamentData.matches || {};
-      const targetPts = tournamentData.settings?.pointsPerSet || 15;
+      const groupPts = Number(tournamentData.settings?.groupPointsPerSet) || 21;
+      const koPts = Number(tournamentData.settings?.knockoutPointsPerSet) || 15;
 
       for (const [id, m] of Object.entries(matches)) {
         if (m.stage === 'group') {
-          // Ngẫu nhiên chọn đội A hoặc đội B thắng
+          // Ngẫu nhiên chọn đội A hoặc đội B thắng 1 set 21
           const isAWin = Math.random() > 0.45;
-          const isThreeSets = Math.random() > 0.6;
+          const loserPts = Math.floor(Math.random() * 8) + (groupPts - 8); // từ 13 đến 20
 
-          let s1a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
-          let s1b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
-
-          let s2a, s2b, s3a = 0, s3b = 0, setsWonA = 0, setsWonB = 0;
-
-          if (isThreeSets) {
-            s2a = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
-            s2b = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
-            s3a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
-            s3b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
-            setsWonA = isAWin ? 2 : 1;
-            setsWonB = isAWin ? 1 : 2;
-          } else {
-            s2a = isAWin ? targetPts : Math.floor(Math.random() * 5) + (targetPts - 5);
-            s2b = isAWin ? Math.floor(Math.random() * 5) + (targetPts - 5) : targetPts;
-            setsWonA = isAWin ? 2 : 0;
-            setsWonB = isAWin ? 0 : 2;
-          }
-
+          const s1a = isAWin ? groupPts : loserPts;
+          const s1b = isAWin ? loserPts : groupPts;
           const winner = isAWin ? m.teamA : m.teamB;
 
           await updateMatchScore(id, {
             scores: [
               { a: s1a, b: s1b },
-              { a: s2a, b: s2b },
-              { a: s3a, b: s3b }
+              { a: 0, b: 0 },
+              { a: 0, b: 0 }
             ],
-            setsWon: { a: setsWonA, b: setsWonB },
+            setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
             winner,
             status: 'completed'
           });
@@ -951,13 +1037,13 @@ function setupDatabaseActionButtons() {
       // Đợi ngắn để state cập nhật
       await new Promise(r => setTimeout(r, 400));
 
-      // 3. Mô phỏng Bán kết 1 & 2
+      // 3. Mô phỏng Bán kết 1 & 2: 3 set chạm 15 (thắng 2)
       const bk1 = tournamentData.matches['M21'];
       const bk2 = tournamentData.matches['M22'];
 
       if (bk1 && bk1.teamA && bk1.teamB) {
         await updateMatchScore('M21', {
-          scores: [{ a: targetPts, b: targetPts - 3 }, { a: targetPts - 2, b: targetPts }, { a: targetPts, b: targetPts - 4 }],
+          scores: [{ a: koPts, b: koPts - 3 }, { a: koPts - 2, b: koPts }, { a: koPts, b: koPts - 4 }],
           setsWon: { a: 2, b: 1 },
           winner: bk1.teamA,
           status: 'completed'
@@ -966,7 +1052,7 @@ function setupDatabaseActionButtons() {
 
       if (bk2 && bk2.teamA && bk2.teamB) {
         await updateMatchScore('M22', {
-          scores: [{ a: targetPts, b: targetPts - 4 }, { a: targetPts, b: targetPts - 2 }],
+          scores: [{ a: koPts, b: koPts - 4 }, { a: koPts, b: koPts - 2 }, { a: 0, b: 0 }],
           setsWon: { a: 2, b: 0 },
           winner: bk2.teamA,
           status: 'completed'

@@ -115,26 +115,26 @@ function calculateStandings(teams, matches, groupKey, pointsForWin = 1) {
   });
 }
 
-// Giả lập trận M01: X1 thắng X2 (2-1): Set 1: 15-12, Set 2: 12-15, Set 3: 15-10
+// Giả lập trận M01 (Vòng bảng: 1 set chạm 21): X1 thắng X2 (1-0): Set 1: 21-18
 const testData = getInitialDatabaseData();
 testData.matches["M01"] = {
   ...testData.matches["M01"],
   status: "completed",
-  scores: [{ a: 15, b: 12 }, { a: 12, b: 15 }, { a: 15, b: 10 }],
-  setsWon: { a: 2, b: 1 },
+  scores: [{ a: 21, b: 18 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+  setsWon: { a: 1, b: 0 },
   winner: "X1"
 };
 
 const standingsX = calculateStandings(testData.teams, testData.matches, "X");
 assert(standingsX[0].id === "X1", "Đội X1 thắng trận M01 phải đứng đầu Bảng X.");
 assert(standingsX[0].points === 1, "Đội X1 có 1 điểm.");
-assert(standingsX[0].setsWon === 2 && standingsX[0].setsLost === 1, "Đội X1 có 2 set thắng, 1 set thua.");
-assert(standingsX[0].pointsWon === 42 && standingsX[0].pointsLost === 37, "Hiệu số điểm X1: 42 ghi được, 37 bị mất (+5).");
+assert(standingsX[0].setsWon === 1 && standingsX[0].setsLost === 0, "Đội X1 có 1 set thắng, 0 set thua (1 set 21).");
+assert(standingsX[0].pointsWon === 21 && standingsX[0].pointsLost === 18, "Hiệu số điểm X1: 21 ghi được, 18 bị mất (+3).");
 
 // ==========================================
-// TEST 4: MÔ PHỎNG HOÀN TOÀN 20 TRẬN VÒNG BẢNG & TỰ ĐỘNG GÁN BÁN KẾT
+// TEST 4: MÔ PHỎNG HOÀN TOÀN 20 TRẬN VÒNG BẢNG (1 SET 21) & TỰ ĐỘNG GÁN BÁN KẾT
 // ==========================================
-console.log("\n👉 Test 4: Mô phỏng 20 trận vòng bảng & tự động gán cặp Bán kết...");
+console.log("\n👉 Test 4: Mô phỏng 20 trận vòng bảng (1 set chạm 21) & tự động gán cặp Bán kết...");
 
 // Tạo kịch bản kết quả có chủ đích cho Bảng X:
 // X1 thắng tất cả 4 trận -> 4 điểm (Nhất Bảng X)
@@ -146,7 +146,7 @@ console.log("\n👉 Test 4: Mô phỏng 20 trận vòng bảng & tự động g�
 const groupXOrder = ["X1", "X2", "X3", "X4", "X5"];
 const groupDOrder = ["D1", "D2", "D3", "D4", "D5"];
 
-// Hoàn thành tất cả 10 trận Bảng X: đội có index nhỏ hơn luôn thắng 2-0
+// Hoàn thành tất cả 10 trận Bảng X & Bảng Đ: 1 set chạm 21, đội index nhỏ hơn thắng 21-16
 Object.keys(testData.matches).forEach(mId => {
   const m = testData.matches[mId];
   if (m.stage === "group") {
@@ -157,8 +157,8 @@ Object.keys(testData.matches).forEach(mId => {
       testData.matches[mId] = {
         ...m,
         status: "completed",
-        scores: winner === m.teamA ? [{ a: 15, b: 10 }, { a: 15, b: 8 }] : [{ a: 8, b: 15 }, { a: 10, b: 15 }],
-        setsWon: winner === m.teamA ? { a: 2, b: 0 } : { a: 0, b: 2 },
+        scores: winner === m.teamA ? [{ a: 21, b: 16 }, { a: 0, b: 0 }, { a: 0, b: 0 }] : [{ a: 16, b: 21 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+        setsWon: winner === m.teamA ? { a: 1, b: 0 } : { a: 0, b: 1 },
         winner: winner
       };
     } else if (m.group === "D") {
@@ -168,8 +168,8 @@ Object.keys(testData.matches).forEach(mId => {
       testData.matches[mId] = {
         ...m,
         status: "completed",
-        scores: winner === m.teamA ? [{ a: 15, b: 10 }, { a: 15, b: 8 }] : [{ a: 8, b: 15 }, { a: 10, b: 15 }],
-        setsWon: winner === m.teamA ? { a: 2, b: 0 } : { a: 0, b: 2 },
+        scores: winner === m.teamA ? [{ a: 21, b: 16 }, { a: 0, b: 0 }, { a: 0, b: 0 }] : [{ a: 16, b: 21 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+        setsWon: winner === m.teamA ? { a: 1, b: 0 } : { a: 0, b: 1 },
         winner: winner
       };
     }
