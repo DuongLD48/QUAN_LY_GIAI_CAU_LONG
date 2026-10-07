@@ -144,20 +144,28 @@ function updateDbBadge(mode) {
     if (note) {
       const dbUrl = window.firebaseConfig?.databaseURL || 'Đã cấu hình';
       note.innerHTML = `<div class="space-y-1">
-        <div class="text-emerald-400 font-bold"><i class="fa-solid fa-cloud-arrow-up"></i> Đang đọc/ghi trực tiếp từ Firebase Cloud Database!</div>
+        <div class="text-emerald-400 font-bold"><i class="fa-solid fa-cloud-arrow-up"></i> Đang kết nối trực tiếp Firebase Cloud Database!</div>
         <div class="text-[10px] text-slate-400 font-mono break-all bg-slate-950 p-1.5 rounded-lg border border-slate-800">URL: ${dbUrl}</div>
-        <div class="text-[10px] text-slate-400">Khán giả và VĐV quét mã QR trên điện thoại sẽ xem được điểm nhảy tức thì.</div>
+        <div class="text-[10px] text-slate-400">Khán giả và VĐV quét mã QR trên điện thoại sẽ xem điểm nhảy tức thì.</div>
       </div>`;
     }
-  } else {
+  } else if (mode === 'disconnected') {
     badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-bold";
-    badge.textContent = "Chế độ Local Storage";
-    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
-    if (title) title.innerHTML = `<span class="text-amber-400">Chế độ: LOCAL STORAGE (Nội bộ máy)</span>`;
+    badge.textContent = "Đang kết nối lại...";
+    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+    if (title) title.innerHTML = `<span class="text-amber-400">Firebase: ĐANG KẾT NỐI LẠI...</span>`;
+    if (note) {
+      note.innerHTML = `<div class="text-amber-300 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> Đang kiểm tra kết nối mạng hoặc thử kết nối lại Firebase Server...</div>`;
+    }
+  } else {
+    badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-mono font-bold";
+    badge.textContent = "Chưa kết nối Cloud";
+    if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+    if (title) title.innerHTML = `<span class="text-rose-400">Trạng thái: CHƯA CẤU HÌNH FIREBASE</span>`;
     if (note) {
       note.innerHTML = `<div class="space-y-1">
-        <div class="text-amber-300 font-semibold"><i class="fa-solid fa-hard-drive"></i> Dữ liệu hiện chỉ lưu trên trình duyệt của máy tính này.</div>
-        <div class="text-[10px] text-slate-400">Để VĐV quét mã QR xem được trên điện thoại từ xa, hãy dán API Key Firebase vào file <code class="text-white bg-slate-800 px-1 py-0.5 rounded">js/firebase-config.js</code>.</div>
+        <div class="text-rose-300 font-semibold"><i class="fa-solid fa-plug-circle-xmark"></i> Chưa có cấu hình Firebase API Key.</div>
+        <div class="text-[10px] text-slate-400">Vui lòng dán API Key và Database URL vào mục <b>Cấu Hình Bảo Mật (Ẩn Khỏi Git)</b> bên dưới để bắt đầu vận hành Cloud Realtime.</div>
       </div>`;
     }
   }

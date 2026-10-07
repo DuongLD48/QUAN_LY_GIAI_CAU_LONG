@@ -105,10 +105,14 @@ function updateSyncIndicator(mode) {
     syncText.textContent = "Cloud DB: Online";
     syncIcon.className = "fa-solid fa-cloud text-cyan-400";
     if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold";
-  } else {
-    syncText.textContent = "Local Storage";
-    syncIcon.className = "fa-solid fa-hard-drive text-amber-400";
+  } else if (mode === 'disconnected') {
+    syncText.textContent = "Cloud DB: Mất kết nối";
+    syncIcon.className = "fa-solid fa-triangle-exclamation text-amber-400";
     if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold";
+  } else {
+    syncText.textContent = "Chưa kết nối Cloud DB";
+    syncIcon.className = "fa-solid fa-plug-circle-xmark text-rose-400";
+    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-rose-950/80 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold";
   }
 }
 

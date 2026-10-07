@@ -146,41 +146,35 @@ async function initDatabaseService() {
           console.log("⚠️ Mất kết nối mạng hoặc đang kết nối lại Firebase...");
         }
         if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
-          window.updateDbBadge(isCloudConnected ? "firebase" : "local");
+          window.updateDbBadge(isCloudConnected ? "firebase" : "disconnected");
         }
         if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
-          window.updateSyncIndicator(isCloudConnected ? "firebase" : "local");
+          window.updateSyncIndicator(isCloudConnected ? "firebase" : "disconnected");
         }
       });
 
       return { mode: "firebase", db: firebaseDb, url: firebaseConfig.databaseURL };
     } catch (err) {
-      console.warn("⚠️ Không thể kết nối Firebase, chuyển sang LocalStorage:", err);
+      console.error("❌ Lỗi khởi tạo Firebase Database:", err);
+      if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
+        window.updateDbBadge("unconfigured");
+      }
+      if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
+        window.updateSyncIndicator("unconfigured");
+      }
+      return { mode: "unconfigured", db: null, error: err.message };
     }
   }
 
-  // Chế độ Local
-  if (typeof BroadcastChannel !== 'undefined') {
-    try {
-      fallbackChannel = new BroadcastChannel("badminton_sync_channel");
-      fallbackChannel.onmessage = (event) => {
-        if (event.data && event.data.type === "DATA_UPDATED") {
-          notifyListeners(event.data.data);
-        }
-      };
-    } catch (e) {
-      console.warn("BroadcastChannel không hỗ trợ:", e);
-    }
+  // Nếu chưa cấu hình Firebase
+  if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
+    window.updateDbBadge("unconfigured");
+  }
+  if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
+    window.updateSyncIndicator("unconfigured");
   }
 
-  // Khởi tạo data ban đầu nếu chưa có hoặc cập nhật nếu dữ liệu cũ chưa đủ 52 trận
-  const currentData = getLocalData();
-  const initial = getFallbackInitialData();
-  if (!currentData || !currentData.matches || !currentData.teams || Object.keys(currentData.matches).length < Object.keys(initial.matches || {}).length) {
-    saveLocalData(initial);
-  }
-
-  return { mode: "local", db: null };
+  return { mode: "unconfigured", db: null };
 }
 
 /**
@@ -212,9 +206,9 @@ async function testDatabaseConnection() {
   }
 
   return {
-    success: true,
-    mode: 'local',
-    message: 'Đang dùng Local Storage nội bộ trên trình duyệt (Chưa cấu hình Firebase API Key).'
+    success: false,
+    mode: 'unconfigured',
+    message: 'Chưa cấu hình Firebase API Key. Vui lòng nhập API Key và Database URL trong phần Cài đặt.'
   };
 }
 
@@ -229,8 +223,7 @@ function onDataChange(callback) {
       callback(sanitized || getFallbackInitialData());
     });
   } else {
-    const data = getLocalData() || getFallbackInitialData();
-    callback(data);
+    callback(getFallbackInitialData());
   }
 
   return () => {
@@ -250,89 +243,53 @@ function notifyListeners(data) {
 }
 
 async function seedDatabase(customData = null) {
+  if (!firebaseDb) {
+    throw new Error("Chưa kết nối Firebase Cloud Database! Vui lòng nhập API Key và kết nối Firebase trước khi nạp dữ liệu.");
+  }
   const data = customData || getFallbackInitialData();
   data.updatedAt = new Date().toISOString();
-
-  if (isFirebaseConfigured() && firebaseDb) {
-    await firebaseDb.ref().set(data);
-  } else {
-    saveLocalData(data);
-  }
+  await firebaseDb.ref().set(data);
   return data;
 }
 
 async function updateMatchScore(matchId, matchUpdate) {
-  if (isFirebaseConfigured() && firebaseDb) {
-    await firebaseDb.ref(`matches/${matchId}`).update({
-      ...matchUpdate,
-      updatedAt: new Date().toISOString()
-    });
-  } else {
-    const data = getLocalData() || getFallbackInitialData();
-    if (data.matches && data.matches[matchId]) {
-      data.matches[matchId] = {
-        ...data.matches[matchId],
-        ...matchUpdate,
-        updatedAt: new Date().toISOString()
-      };
-      saveLocalData(data);
-    }
+  if (!firebaseDb) {
+    throw new Error("Chưa kết nối Firebase Cloud Database!");
   }
+  await firebaseDb.ref(`matches/${matchId}`).update({
+    ...matchUpdate,
+    updatedAt: new Date().toISOString()
+  });
 }
 
 async function updateTeam(teamId, teamData) {
-  if (isFirebaseConfigured() && firebaseDb) {
-    await firebaseDb.ref(`teams/${teamId}`).update({
-      ...teamData,
-      updatedAt: new Date().toISOString()
-    });
-  } else {
-    const data = getLocalData() || getFallbackInitialData();
-    if (data.teams && data.teams[teamId]) {
-      data.teams[teamId] = {
-        ...data.teams[teamId],
-        ...teamData,
-        updatedAt: new Date().toISOString()
-      };
-      saveLocalData(data);
-    }
+  if (!firebaseDb) {
+    throw new Error("Chưa kết nối Firebase Cloud Database!");
   }
+  await firebaseDb.ref(`teams/${teamId}`).update({
+    ...teamData,
+    updatedAt: new Date().toISOString()
+  });
 }
 
 async function updateMatchSchedule(matchId, scheduleData) {
-  if (isFirebaseConfigured() && firebaseDb) {
-    await firebaseDb.ref(`matches/${matchId}`).update({
-      ...scheduleData,
-      updatedAt: new Date().toISOString()
-    });
-  } else {
-    const data = getLocalData() || getFallbackInitialData();
-    if (data.matches && data.matches[matchId]) {
-      data.matches[matchId] = {
-        ...data.matches[matchId],
-        ...scheduleData,
-        updatedAt: new Date().toISOString()
-      };
-      saveLocalData(data);
-    }
+  if (!firebaseDb) {
+    throw new Error("Chưa kết nối Firebase Cloud Database!");
   }
+  await firebaseDb.ref(`matches/${matchId}`).update({
+    ...scheduleData,
+    updatedAt: new Date().toISOString()
+  });
 }
 
 async function updateSettings(newSettings) {
-  if (isFirebaseConfigured() && firebaseDb) {
-    await firebaseDb.ref('settings').update({
-      ...newSettings,
-      updatedAt: new Date().toISOString()
-    });
-  } else {
-    const data = getLocalData() || getFallbackInitialData();
-    data.settings = {
-      ...(data.settings || (typeof window !== 'undefined' ? window.DEFAULT_SETTINGS : {})),
-      ...newSettings,
-      updatedAt: new Date().toISOString()
-    };
-    saveLocalData(data);
+  if (!firebaseDb) {
+    throw new Error("Chưa kết nối Firebase Cloud Database!");
   }
+  await firebaseDb.ref('settings').update({
+    ...newSettings,
+    updatedAt: new Date().toISOString()
+  });
 }
 
 // Gán toàn cục vào window
