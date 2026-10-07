@@ -95,27 +95,31 @@ function getLocalData() {
   try {
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return window.sanitizeTournamentData ? window.sanitizeTournamentData(parsed) : parsed;
+      }
     }
   } catch (e) {
     console.warn("LocalStorage không khả dụng, dùng bộ nhớ RAM:", e);
   }
-  return inMemoryData;
+  return window.sanitizeTournamentData ? window.sanitizeTournamentData(inMemoryData) : inMemoryData;
 }
 
 function saveLocalData(data) {
-  inMemoryData = data;
+  const sanitized = window.sanitizeTournamentData ? window.sanitizeTournamentData(data) : data;
+  inMemoryData = sanitized;
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
     }
     if (fallbackChannel) {
-      fallbackChannel.postMessage({ type: "DATA_UPDATED", data });
+      fallbackChannel.postMessage({ type: "DATA_UPDATED", data: sanitized });
     }
   } catch (e) {
     console.warn("Không thể ghi LocalStorage:", e);
   }
-  notifyListeners(data);
+  notifyListeners(sanitized);
 }
 
 let isCloudConnected = false;
@@ -169,10 +173,10 @@ async function initDatabaseService() {
     }
   }
 
-  // Khởi tạo data ban đầu nếu chưa có
+  // Khởi tạo data ban đầu nếu chưa có hoặc cập nhật nếu dữ liệu cũ chưa đủ 52 trận
   const currentData = getLocalData();
-  if (!currentData || !currentData.matches || !currentData.teams) {
-    const initial = getFallbackInitialData();
+  const initial = getFallbackInitialData();
+  if (!currentData || !currentData.matches || !currentData.teams || Object.keys(currentData.matches).length < Object.keys(initial.matches || {}).length) {
     saveLocalData(initial);
   }
 
@@ -221,11 +225,8 @@ function onDataChange(callback) {
     const rootRef = firebaseDb.ref();
     rootRef.on('value', (snapshot) => {
       const val = snapshot.val();
-      if (val) {
-        callback(val);
-      } else {
-        callback(getFallbackInitialData());
-      }
+      const sanitized = window.sanitizeTournamentData ? window.sanitizeTournamentData(val) : val;
+      callback(sanitized || getFallbackInitialData());
     });
   } else {
     const data = getLocalData() || getFallbackInitialData();
@@ -238,9 +239,10 @@ function onDataChange(callback) {
 }
 
 function notifyListeners(data) {
+  const sanitized = window.sanitizeTournamentData ? window.sanitizeTournamentData(data) : data;
   activeListeners.forEach(cb => {
     try {
-      cb(data);
+      cb(sanitized);
     } catch (e) {
       console.error("Lỗi callback:", e);
     }

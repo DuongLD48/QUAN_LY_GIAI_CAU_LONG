@@ -109,7 +109,7 @@
       <!-- Admin Tabs -->
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 overflow-x-auto pb-2 text-xs font-medium border-t border-slate-700/50 pt-2">
         <button id="admin-tab-scores" class="admin-tab-btn active px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold transition flex items-center gap-1.5">
-          <i class="fa-solid fa-scoreboard"></i> Nhập Tỷ Số (24 Trận)
+          <i class="fa-solid fa-scoreboard"></i> Nhập Tỷ Số (52 Trận)
         </button>
         <button id="admin-tab-teams" class="admin-tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5">
           <i class="fa-solid fa-users"></i> Đội Hình & VĐV (10 Đội)
@@ -127,28 +127,36 @@
     <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow">
       
       <!-- SUB-TAB 1: NHẬP TỶ SỐ TRẬN ĐẤU -->
-      <section id="admin-section-scores" class="admin-content space-y-6">
+      <section id="admin-section-scores" class="admin-content space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
           <div>
             <h2 class="text-base font-bold text-white flex items-center gap-2">
               <span class="w-2 h-5 bg-blue-500 rounded-full inline-block"></span>
-              Danh Sách Nhập Điểm Trận Đấu
+              Bảng Nhập Tỷ Số Trực Tiếp Nhanh Gọn
             </h2>
-            <p class="text-xs text-slate-400">Bấm [Nhập Điểm] để cập nhật kết quả từng set. Tự động tính đội thắng và cập nhật BXH tức thì.</p>
+            <p class="text-xs text-slate-400">Gõ điểm số trực tiếp trên từng dòng trận đấu và bấm [Lưu], hoặc bấm icon sửa để mở modal chi tiết.</p>
           </div>
           
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px]">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="admin-search-input" placeholder="Tìm trận/Đội/VĐV..." class="w-full bg-slate-900 border border-slate-700 rounded-lg text-xs py-1.5 pl-8 pr-3 text-slate-200 focus:outline-none focus:border-blue-500">
+            </div>
+
             <select id="score-filter-stage" class="bg-slate-900 border border-slate-700 rounded-lg text-xs py-1.5 px-3 text-slate-200 focus:outline-none">
-              <option value="all">Tất cả các trận (24)</option>
-              <option value="X">Bảng Xanh (X1 - X5)</option>
-              <option value="D">Bảng Đỏ (Đ1 - Đ5)</option>
-              <option value="knockout">Playoffs (Bán kết & CK)</option>
+              <option value="all">Tất cả các trận (52)</option>
+              <option value="knockout">Playoffs Knockout (M41 - M52)</option>
+              <option value="court-1">Sân 1</option>
+              <option value="court-2">Sân 2</option>
+              <option value="court-3">Sân 3</option>
+              <option value="X">Bảng Xanh (X)</option>
+              <option value="D">Bảng Đỏ (Đ)</option>
             </select>
           </div>
         </div>
 
-        <!-- Matches Grid -->
-        <div id="admin-matches-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Matches Container (Compact Rows Grid) -->
+        <div id="admin-matches-container" class="space-y-2.5">
           <!-- Rendered dynamically by admin.js -->
         </div>
       </section>
@@ -239,13 +247,13 @@
             </h3>
             
             <p class="text-xs text-slate-400 leading-relaxed">
-              Bạn có thể nạp toàn bộ 10 đội và 24 trận đấu chuẩn lên Database chỉ với 1 click. Hành động này sẽ đặt lại tỷ số ban đầu.
+              Bạn có thể nạp toàn bộ 10 đội và 52 trận đấu chuẩn lên Database chỉ với 1 click. Hành động này sẽ đặt lại tỷ số ban đầu.
             </p>
 
             <div class="pt-2 space-y-3">
               <button id="btn-seed-data" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
                 <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                Nạp Dữ Liệu Gốc 10 Đội & 24 Trận (Seed Data)
+                Nạp Dữ Liệu Gốc 10 Đội & 52 Trận (Seed Data)
               </button>
 
               <button id="btn-simulate-tour" class="w-full py-2.5 px-4 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/30 font-bold text-xs transition flex items-center justify-center gap-2">

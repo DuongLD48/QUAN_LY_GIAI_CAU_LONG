@@ -3,7 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const PORT = 3000;
+try {
+  if (fs.existsSync(path.join(__dirname, '.env')) && typeof process.loadEnvFile === 'function') {
+    process.loadEnvFile(path.join(__dirname, '.env'));
+  }
+} catch (e) {
+  console.warn("Không thể tải file .env:", e.message);
+}
+
+const PORT = process.env.PORT || 3000;
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',

@@ -1,13 +1,39 @@
-/* Custom supplementary styles for Badminton Tournament System */
+/* ====================================================================
+   CYBERPUNK / E-SPORTS DARK THEME (DARK NAVY & GLOWING CYAN ACCENTS)
+   Phù hợp 100% với phong cách giao diện giải đấu cầu lông chuyên nghiệp
+   ==================================================================== */
 
+:root {
+  --bg-dark-base: #070d19;
+  --bg-dark-card: #0c1524;
+  --bg-dark-card-hover: #101c30;
+  --bg-dark-inner: #08111e;
+  --border-dark: #16263f;
+  --border-cyan: rgba(6, 182, 212, 0.4);
+  --cyan-neon: #00e5ff;
+  --cyan-primary: #00b4d8;
+  --cyan-glow: rgba(0, 229, 255, 0.45);
+  --text-primary: #ffffff;
+  --text-muted: #7e94b2;
+}
+
+body {
+  background-color: #070d19 !important;
+  color: #e2e8f0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Animations */
 @keyframes pulse-live {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
+    box-shadow: 0 0 10px #10b981;
   }
   50% {
-    opacity: 0.35;
-    transform: scale(1.15);
+    opacity: 0.4;
+    transform: scale(1.2);
+    box-shadow: 0 0 16px #10b981;
   }
 }
 
@@ -15,17 +41,39 @@
   display: inline-block;
   width: 9px;
   height: 9px;
-  background-color: #ef4444;
+  background-color: #10b981;
   border-radius: 50%;
-  animation: pulse-live 1.4s infinite ease-in-out;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+  animation: pulse-live 1.5s infinite ease-in-out;
+}
+
+.live-indicator-red {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background-color: #f43f5e;
+  border-radius: 50%;
+  animation: pulse-live-red 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-live-red {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 10px #f43f5e;
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+    box-shadow: 0 0 16px #f43f5e;
+  }
 }
 
 /* Score Flash when updated */
 @keyframes score-flash {
   0% {
-    background-color: rgba(245, 158, 11, 0.35);
-    transform: scale(1.05);
+    background-color: rgba(0, 229, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.8);
+    transform: scale(1.06);
   }
   100% {
     background-color: transparent;
@@ -34,17 +82,48 @@
 }
 
 .score-updated {
-  animation: score-flash 1.2s ease-out;
+  animation: score-flash 1.4s ease-out;
+}
+
+/* Glowing Neon Cyan Pill Buttons */
+.tab-pill-cyan-active {
+  background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(0, 180, 216, 0.65), 0 0 5px rgba(0, 229, 255, 0.8) !important;
+  border: 1px solid rgba(0, 229, 255, 0.6) !important;
+}
+
+.tab-pill-cyan-inactive {
+  background-color: #0c1524 !important;
+  color: #8da2c0 !important;
+  border: 1px solid #1a2b45 !important;
+}
+.tab-pill-cyan-inactive:hover {
+  background-color: #121e33 !important;
+  color: #ffffff !important;
+  border-color: rgba(0, 180, 216, 0.4) !important;
+}
+
+/* Score Box Neon Cyan Style */
+.score-pill-cyan {
+  background-color: rgba(0, 36, 51, 0.85);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.22);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* Court card styling */
 .court-card {
+  background-color: #0c1524;
+  border: 1px solid #172740;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .court-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12), 0 8px 12px -6px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 180, 216, 0.5);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 180, 216, 0.15);
+  transform: translateY(-2px);
 }
 
 /* Custom scrollbars */
@@ -53,21 +132,22 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #070d19;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1e314f;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #0096c7;
 }
 
-/* Glass effect */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* Glass effect for Modals & Nav */
+.glass-panel-dark {
+  background: rgba(12, 21, 36, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(22, 38, 63, 0.8);
 }
 
 /* Bracket connection lines */
@@ -81,48 +161,12 @@
   top: 50%;
   width: 24px;
   height: 2px;
-  background-color: #cbd5e1;
+  background-color: #1e314f;
 }
 
 /* TV / Fullscreen presentation mode */
 body.tv-mode {
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
-}
-
-body.tv-mode header {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-body.tv-mode .court-card {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-body.tv-mode .court-card .bg-slate-50 {
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
-}
-
-body.tv-mode .court-card .bg-slate-100 {
-  background-color: #334155 !important;
-  color: #cbd5e1 !important;
-}
-
-body.tv-mode .court-card .text-slate-800 {
-  color: #f8fafc !important;
-}
-
-body.tv-mode .court-card .text-slate-500,
-body.tv-mode .court-card .text-slate-400 {
-  color: #94a3b8 !important;
-}
-
-body.tv-mode .court-card .border-slate-100 {
-  border-color: #334155 !important;
+  background-color: #050912 !important;
 }
 
 /* Monospace Score Display */
@@ -130,3 +174,16 @@ body.tv-mode .court-card .border-slate-100 {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: -0.05em;
 }
+
+/* Hide number input spin buttons (up/down arrows) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+

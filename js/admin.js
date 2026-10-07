@@ -333,6 +333,13 @@ function setupAdminTabs() {
       renderAdminMatches();
     });
   }
+
+  const adminSearch = document.getElementById('admin-search-input');
+  if (adminSearch) {
+    adminSearch.addEventListener('input', () => {
+      renderAdminMatches();
+    });
+  }
 }
 
 /**
@@ -346,105 +353,120 @@ function renderAdminAll() {
 }
 
 /**
- * 4. RENDER DANH SÁCH TRẬN ĐẤU ĐỂ NHẬP ĐIỂM
+ * 4. RENDER DANH SÁCH TRẬN ĐẤU ĐỂ NHẬP ĐIỂM (DẠNG HÀNG RÚT GỌN TỐI ƯU SIÊU NHANH)
  */
 function renderAdminMatches() {
   const container = document.getElementById('admin-matches-container');
   if (!container) return;
 
-  const matches = Object.values(tournamentData.matches || {});
+  const rawMatches = Object.values(tournamentData.matches || {});
+  const matches = rawMatches.map(m => window.sanitizeMatch ? window.sanitizeMatch(m) : m)
+    .sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0));
   const filter = document.getElementById('score-filter-stage')?.value || 'all';
+  const searchQuery = document.getElementById('admin-search-input')?.value.trim().toLowerCase() || '';
 
   const filtered = matches.filter(m => {
-    if (filter === 'all') return true;
-    if (filter === 'X') return m.group === 'X';
-    if (filter === 'D') return m.group === 'D';
-    if (filter === 'knockout') return m.stage !== 'group';
+    if (filter === 'mixed' && m.category !== 'mixed') return false;
+    if (filter === 'men' && m.category !== 'men') return false;
+    if (filter === 'court-1' && Number(m.court) !== 1) return false;
+    if (filter === 'court-2' && Number(m.court) !== 2) return false;
+    if (filter === 'court-3' && Number(m.court) !== 3) return false;
+    if (filter === 'X' && m.group !== 'X') return false;
+    if (filter === 'D' && m.group !== 'D') return false;
+    if (filter === 'knockout' && m.stage === 'group') return false;
+
+    if (searchQuery) {
+      const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
+      const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+      const pool = [m.id, `m${m.matchNo}`, `#${m.matchNo}`, `sân ${m.court}`, m.time, teamA.name, teamA.code, teamA.membersText, teamB.name, teamB.code, teamB.membersText].join(' ').toLowerCase();
+      if (!pool.includes(searchQuery)) return false;
+    }
+
     return true;
   });
 
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="bg-slate-800/90 rounded-2xl border border-slate-700 p-6 text-center text-slate-400 italic text-xs">
+        Không tìm thấy trận đấu nào khớp với từ khóa / bộ lọc hiện tại
+      </div>
+    `;
+    return;
+  }
+
   let html = '';
   filtered.forEach(m => {
-    const teamA = getTeamInfo(m.teamA, m.placeholderA);
-    const teamB = getTeamInfo(m.teamB, m.placeholderB);
+    const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
+    const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
     const isCompleted = m.status === 'completed';
     const isPlaying = m.status === 'playing';
     const setsWon = m.setsWon || { a: 0, b: 0 };
     const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
+    const s1 = scores[0] || { a: 0, b: 0 };
 
     const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
       isGroup: m.stage === 'group',
-      maxSets: m.stage === 'group' ? 1 : 3,
-      targetPts: m.stage === 'group' ? 21 : 15,
       label: m.stage === 'group' ? "1 set 21" : "3 set 15"
     };
 
-    const s1 = scores[0] || { a: 0, b: 0 };
-    const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
+    const teamALabel = teamA.code && teamA.code !== teamA.name 
+      ? `<span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-mono font-black text-xs shrink-0">${teamA.code}</span> <span class="font-bold text-white text-xs truncate" title="${teamA.name}">${teamA.name}</span>`
+      : `<span class="font-bold text-white text-xs truncate" title="${teamA.name}">${teamA.name}</span>`;
+
+    const teamBLabel = teamB.code && teamB.code !== teamB.name 
+      ? `<span class="font-bold text-white text-xs truncate" title="${teamB.name}">${teamB.name}</span> <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-mono font-black text-xs shrink-0">${teamB.code}</span>`
+      : `<span class="font-bold text-white text-xs truncate" title="${teamB.name}">${teamB.name}</span>`;
+
+    const matchNum = m.matchNo || (m.id ? String(m.id).replace(/\D/g, '') : '') || m.id || '?';
+    const courtText = m.court ? `Sân ${m.court}` : '';
+    const timeText = m.time || '';
 
     html += `
-      <div class="bg-slate-800 rounded-3xl border ${isPlaying ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-700'} p-4 flex flex-col justify-between" data-match-id="${m.id}">
+      <div class="bg-slate-800/90 hover:bg-slate-800 rounded-xl border ${isPlaying ? 'border-blue-500 ring-1 ring-blue-500/30' : isCompleted ? 'border-emerald-900/60' : 'border-slate-700/80'} p-2.5 sm:p-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 sm:gap-3 transition shadow-sm" data-match-id="${m.id}">
         
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-2.5 border-b border-slate-700/60 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-white bg-slate-700 px-2 py-0.5 rounded">Trận ${m.id}</span>
-            <span class="text-slate-400 font-medium">Sân ${m.court} • ${m.time}</span>
-            <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-800/40">${formatInfo.label}</span>
-          </div>
-          <div>
-            ${isPlaying 
-              ? '<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-full"><span class="live-indicator"></span> Đang đấu</span>'
-              : isCompleted
-              ? '<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-check"></i> Đã xong</span>'
-              : '<span class="text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">Chưa đấu</span>'
-            }
-          </div>
+        <!-- Cột Trái: Mã trận & Sân & Giờ -->
+        <div class="flex items-center space-x-2 shrink-0">
+          <span class="font-extrabold text-xs text-white bg-slate-700/80 px-2 py-0.5 rounded font-mono shrink-0">#${matchNum}</span>
+          ${courtText ? `<span class="text-xs text-cyan-400 font-mono font-bold shrink-0">${courtText}</span>` : ''}
+          ${timeText ? `<span class="text-xs text-slate-400 font-mono shrink-0">${timeText}</span>` : ''}
+          <span class="text-[10px] text-slate-300 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-medium hidden lg:inline-block">${m.category === 'mixed' ? 'Nam Nữ' : 'Đôi Nam'}</span>
         </div>
 
-        <!-- Cặp đấu & Tỷ số -->
-        <div class="py-3 space-y-2">
+        <!-- Trung tâm: Nhập tỷ số trực tiếp -->
+        <div class="flex items-center justify-between md:justify-center gap-2 flex-grow min-w-0 py-1 md:py-0">
           <!-- Đội A -->
-          <div class="flex items-center justify-between p-2.5 rounded-xl ${m.winner === m.teamA ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
-            <div class="truncate pr-2">
-              <div class="font-bold text-xs text-white truncate">${teamA.name}</div>
-              <div class="text-[10px] text-slate-400 truncate">${teamA.membersText}</div>
-            </div>
-            <div class="font-mono text-lg font-black text-blue-400">
-              ${formatInfo.isGroup ? s1.a : setsWon.a}
-            </div>
+          <div class="flex items-center justify-end space-x-1.5 w-5/12 min-w-0 text-right overflow-hidden">
+            ${teamALabel}
+          </div>
+
+          <!-- Ô nhập điểm Set 1 / Tỷ số -->
+          <div class="flex items-center gap-1 shrink-0 font-mono px-1">
+            <input type="number" min="0" max="99" value="${formatInfo.isGroup ? s1.a : setsWon.a}" data-match-id="${m.id}" data-team="a" class="admin-score-input-inline w-11 h-8 text-center bg-slate-950 text-cyan-300 font-mono font-black text-sm rounded-lg border border-cyan-500/40 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner">
+            <span class="text-slate-500 font-bold text-xs">-</span>
+            <input type="number" min="0" max="99" value="${formatInfo.isGroup ? s1.b : setsWon.b}" data-match-id="${m.id}" data-team="b" class="admin-score-input-inline w-11 h-8 text-center bg-slate-950 text-cyan-300 font-mono font-black text-sm rounded-lg border border-cyan-500/40 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner">
           </div>
 
           <!-- Đội B -->
-          <div class="flex items-center justify-between p-2.5 rounded-xl ${m.winner === m.teamB ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-900/60'}">
-            <div class="truncate pr-2">
-              <div class="font-bold text-xs text-white truncate">${teamB.name}</div>
-              <div class="text-[10px] text-slate-400 truncate">${teamB.membersText}</div>
-            </div>
-            <div class="font-mono text-lg font-black text-rose-400">
-              ${formatInfo.isGroup ? s1.b : setsWon.b}
-            </div>
-          </div>
-
-          <!-- Điểm các set -->
-          <div class="flex items-center justify-center gap-1.5 pt-1 font-mono text-xs text-slate-300">
-            ${
-              formatInfo.isGroup 
-                ? `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700 text-emerald-400 font-bold">[${s1.a} - ${s1.b}]</span>`
-                : playedSets.length > 0
-                ? playedSets.map((s, idx) => `<span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-700">S${idx+1}: ${s.a}-${s.b}</span>`).join('')
-                : `<span class="text-slate-500 text-[11px]">3 set chạm 15</span>`
-            }
+          <div class="flex items-center justify-start space-x-1.5 w-5/12 min-w-0 text-left overflow-hidden">
+            ${teamBLabel}
           </div>
         </div>
 
-        <!-- Nút thao tác -->
-        <div class="pt-2 border-t border-slate-700/60 flex gap-2">
-          <button 
-            class="btn-open-score w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow"
-            data-match-id="${m.id}"
-          >
-            <i class="fa-solid fa-pen-to-square"></i> Nhập Điểm Trận ${m.id} (${formatInfo.label})
+        <!-- Cột Phải: Trạng thái & Thao tác Lưu / Modal -->
+        <div class="flex items-center justify-end gap-1.5 shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-slate-700/60">
+          <select data-match-id="${m.id}" class="admin-status-select-inline bg-slate-900 text-xs font-bold text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none">
+            <option value="scheduled" ${m.status === 'scheduled' ? 'selected' : ''}>Chưa đấu</option>
+            <option value="playing" ${m.status === 'playing' ? 'selected' : ''}>Đang đấu</option>
+            <option value="completed" ${m.status === 'completed' ? 'selected' : ''}>Đã xong</option>
+          </select>
+
+          <button class="btn-save-inline px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1 shadow-sm shrink-0" data-match-id="${m.id}" title="Lưu tỷ số trực tiếp">
+            <i class="fa-solid fa-floppy-disk text-[10px]"></i>
+            <span>Lưu</span>
+          </button>
+
+          <button class="btn-open-score p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition shrink-0" data-match-id="${m.id}" title="Nhập điểm chi tiết modal">
+            <i class="fa-solid fa-pen-to-square text-xs"></i>
           </button>
         </div>
 
@@ -454,11 +476,83 @@ function renderAdminMatches() {
 
   container.innerHTML = html;
 
+  // Gắn sự kiện các nút
+  container.querySelectorAll('.btn-save-inline').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveInlineMatchScore(btn.dataset.matchId);
+    });
+  });
+
+  container.querySelectorAll('.admin-score-input-inline').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveInlineMatchScore(input.dataset.matchId);
+      }
+    });
+  });
+
   container.querySelectorAll('.btn-open-score').forEach(btn => {
     btn.addEventListener('click', () => {
       openScoreModal(btn.dataset.matchId);
     });
   });
+}
+
+/**
+ * Hàm hỗ trợ lưu điểm trực tiếp từ hàng trận đấu gọn
+ */
+async function saveInlineMatchScore(matchId) {
+  const match = tournamentData.matches[matchId];
+  if (!match) return;
+
+  const row = document.querySelector(`[data-match-id="${matchId}"]`);
+  if (!row) return;
+
+  const inputA = row.querySelector('.admin-score-input-inline[data-team="a"]');
+  const inputB = row.querySelector('.admin-score-input-inline[data-team="b"]');
+  const statusSelect = row.querySelector('.admin-status-select-inline');
+
+  const scoreA = parseInt(inputA?.value) || 0;
+  const scoreB = parseInt(inputB?.value) || 0;
+  let status = statusSelect?.value || 'scheduled';
+
+  const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
+    isGroup: match.stage === 'group',
+    targetPts: match.stage === 'group' ? 21 : 15
+  };
+
+  // Tự động chuyển trạng thái nếu đã nhập điểm
+  if (status === 'scheduled' && (scoreA > 0 || scoreB > 0)) {
+    status = 'playing';
+  }
+  if (formatInfo.isGroup && (scoreA >= formatInfo.targetPts || scoreB >= formatInfo.targetPts)) {
+    status = 'completed';
+  }
+  if (statusSelect) statusSelect.value = status;
+
+  match.status = status;
+  if (!match.scores) match.scores = [{ a: 0, b: 0 }];
+  match.scores[0] = { a: scoreA, b: scoreB };
+
+  if (formatInfo.isGroup) {
+    match.setsWon = {
+      a: scoreA > scoreB ? 1 : 0,
+      b: scoreB > scoreA ? 1 : 0
+    };
+    match.winner = (status === 'completed' && scoreA !== scoreB) ? (scoreA > scoreB ? match.teamA : match.teamB) : null;
+  }
+
+  // Cập nhật Database Realtime
+  const updateFn = window.updateMatchScore || (typeof updateMatchScore !== 'undefined' ? updateMatchScore : null);
+  if (typeof updateFn === 'function') {
+    await updateFn(matchId, {
+      status: match.status,
+      scores: match.scores,
+      setsWon: match.setsWon,
+      winner: match.winner
+    });
+    showToast(`Đã lưu Trận #${match.matchNo || matchId} [${scoreA} - ${scoreB}]!`);
+  }
 }
 
 /**
@@ -656,8 +750,8 @@ function openScoreModal(matchId) {
   currentEditingMatchId = matchId;
   const modal = document.getElementById('score-modal');
 
-  const teamA = getTeamInfo(match.teamA, match.placeholderA);
-  const teamB = getTeamInfo(match.teamB, match.placeholderB);
+  const teamA = getTeamInfo(match.teamA, match.placeholderA, match.category);
+  const teamB = getTeamInfo(match.teamB, match.placeholderB, match.category);
 
   const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
     isGroup: match.stage === 'group',
@@ -706,9 +800,10 @@ function renderAdminTeams() {
   if (!container) return;
 
   const teams = Object.values(tournamentData.teams || {});
-  let html = '';
+  const groupX = teams.filter(t => t.group === 'X');
+  const groupD = teams.filter(t => t.group === 'D' || t.group !== 'X');
 
-  teams.forEach(team => {
+  const renderCard = (team) => {
     const isX = team.group === 'X';
     const members = team.members || [
       { name: "", role: "A" },
@@ -716,72 +811,151 @@ function renderAdminTeams() {
       { name: "", role: "b" }
     ];
 
-    html += `
-      <div class="bg-slate-800 rounded-3xl border ${isX ? 'border-blue-500/40' : 'border-rose-500/40'} p-5 space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-700">
-          <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded-xl ${isX ? 'bg-blue-600' : 'bg-rose-600'} text-white font-black flex items-center justify-center text-xs">
+    return `
+      <div class="bg-slate-800/90 border ${isX ? 'border-cyan-500/30 hover:border-cyan-500/60' : 'border-rose-500/30 hover:border-rose-500/60'} rounded-2xl p-3.5 space-y-2.5 transition shadow-sm" data-team-id="${team.id}">
+        <!-- Dòng Header: Badge Mã Đội & Tên Đội Tự Ghép & Nút Lưu -->
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/70 pb-2">
+          <div class="flex items-center gap-2 flex-grow min-w-0">
+            <span class="w-7 h-7 rounded-lg ${isX ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'} font-mono font-black text-xs flex items-center justify-center shrink-0">
               ${team.code || team.id}
             </span>
-            <span class="font-bold text-white text-sm">${team.name}</span>
+            <span class="team-name-preview font-bold text-white text-xs truncate" title="${team.name}">${team.name}</span>
           </div>
-          <span class="text-xs ${isX ? 'text-blue-400' : 'text-rose-400'} font-bold">Bảng ${isX ? 'X (Xanh)' : 'Đ (Đỏ)'}</span>
+          <button type="button" class="btn-save-team py-1 px-3 rounded-lg ${isX ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-rose-600 hover:bg-rose-500'} text-white font-bold text-xs transition flex items-center gap-1 shrink-0" data-team-id="${team.id}" title="Lưu thông tin VĐV">
+            <i class="fa-solid fa-floppy-disk text-[10px]"></i> Lưu
+          </button>
         </div>
 
-        <form class="team-edit-form space-y-3 text-xs" data-team-id="${team.id}">
+        <!-- Dòng 3 Ô Nhập VĐV (Nam 1, Nam 2, Nữ) -->
+        <div class="grid grid-cols-3 gap-2 text-xs">
           <div>
-            <label class="block text-slate-400 font-semibold mb-1">Tên Đội</label>
-            <input type="text" class="team-input-name w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-blue-500" value="${team.name}">
+            <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Nam 1 (A)</label>
+            <input type="text" class="team-input-m0 w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500 font-medium" value="${members[0]?.name || ''}" placeholder="Tên Nam 1">
           </div>
-
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 1 (A - Nam)</label>
-              <input type="text" class="team-input-m0 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[0]?.name || ''}">
-            </div>
-            <div>
-              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 2 (a - Nam)</label>
-              <input type="text" class="team-input-m1 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[1]?.name || ''}">
-            </div>
-            <div>
-              <label class="block text-slate-400 text-[10px] mb-1 font-semibold">VĐV 3 (b - Nữ)</label>
-              <input type="text" class="team-input-m2 w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-white" value="${members[2]?.name || ''}">
-            </div>
+          <div>
+            <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Nam 2 (a)</label>
+            <input type="text" class="team-input-m1 w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500 font-medium" value="${members[1]?.name || ''}" placeholder="Tên Nam 2">
           </div>
-
-          <div class="pt-1 text-right">
-            <button type="submit" class="py-2 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs transition flex items-center gap-1.5 ml-auto">
-              <i class="fa-solid fa-floppy-disk"></i> Lưu Thay Đổi Đội ${team.code || team.id}
-            </button>
+          <div>
+            <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Nữ (b)</label>
+            <input type="text" class="team-input-m2 w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500 font-medium" value="${members[2]?.name || ''}" placeholder="Tên Nữ">
           </div>
-        </form>
+        </div>
       </div>
     `;
-  });
+  };
+
+  const html = `
+    <!-- CỘT BẢNG XANH (50%) -->
+    <div class="space-y-3">
+      <div class="bg-cyan-950/40 border border-cyan-500/30 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+        <h3 class="font-black text-cyan-400 text-sm flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse"></span>
+          🔵 BẢNG XANH (X1 - X5)
+        </h3>
+        <span class="text-xs text-cyan-300/80 font-mono font-bold">${groupX.length} Đội</span>
+      </div>
+      <div class="space-y-3">
+        ${groupX.map(t => renderCard(t)).join('')}
+      </div>
+    </div>
+
+    <!-- CỘT BẢNG ĐỎ (50%) -->
+    <div class="space-y-3">
+      <div class="bg-rose-950/40 border border-rose-500/30 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+        <h3 class="font-black text-rose-400 text-sm flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-sm shadow-rose-400 animate-pulse"></span>
+          🔴 BẢNG ĐỎ (Đ1 - Đ5)
+        </h3>
+        <span class="text-xs text-rose-300/80 font-mono font-bold">${groupD.length} Đội</span>
+      </div>
+      <div class="space-y-3">
+        ${groupD.map(t => renderCard(t)).join('')}
+      </div>
+    </div>
+  `;
 
   container.innerHTML = html;
 
-  container.querySelectorAll('.team-edit-form').forEach(form => {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const teamId = form.dataset.teamId;
-      const name = form.querySelector('.team-input-name').value.trim();
-      const m0 = form.querySelector('.team-input-m0').value.trim();
-      const m1 = form.querySelector('.team-input-m1').value.trim();
-      const m2 = form.querySelector('.team-input-m2').value.trim();
+  // Cập nhật tên xem trước khi gõ phím
+  container.querySelectorAll('[data-team-id]').forEach(card => {
+    const inputs = card.querySelectorAll('input');
+    const updatePreview = () => {
+      const m0 = card.querySelector('.team-input-m0')?.value.trim() || "";
+      const m1 = card.querySelector('.team-input-m1')?.value.trim() || "";
+      const m2 = card.querySelector('.team-input-m2')?.value.trim() || "";
 
-      await updateTeam(teamId, {
-        name,
-        members: [
-          { name: m0, role: "A" },
-          { name: m1, role: "a" },
-          { name: m2, role: "b" }
-        ]
-      });
+      let autoName = "";
+      if (m0 && m1 && m2) autoName = `${m0} / ${m1} - ${m2}`;
+      else if (m0 && m2) autoName = `${m0} - ${m2}`;
+      else if (m0 && m1) autoName = `${m0} / ${m1}`;
+      else autoName = [m0, m1, m2].filter(Boolean).join(' - ') || "Chưa nhập VĐV";
 
-      showToast(`Đã cập nhật thông tin Đội ${teamId} thành công!`);
+      const previewEl = card.querySelector('.team-name-preview');
+      if (previewEl) {
+        previewEl.textContent = autoName;
+        previewEl.title = autoName;
+      }
+    };
+
+    inputs.forEach(input => {
+      input.addEventListener('input', updatePreview);
     });
   });
+
+  // Gắn sự kiện nút Lưu
+  container.querySelectorAll('.btn-save-team').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await handleSaveTeam(btn.dataset.teamId);
+    });
+  });
+
+  // Gắn sự kiện nhấn Enter trong các ô input để tự động lưu
+  container.querySelectorAll('input').forEach(input => {
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const card = input.closest('[data-team-id]');
+        if (card) {
+          await handleSaveTeam(card.dataset.teamId);
+        }
+      }
+    });
+  });
+}
+
+async function handleSaveTeam(teamId) {
+  const card = document.querySelector(`[data-team-id="${teamId}"]`);
+  if (!card) return;
+
+  const m0 = card.querySelector('.team-input-m0')?.value.trim() || "";
+  const m1 = card.querySelector('.team-input-m1')?.value.trim() || "";
+  const m2 = card.querySelector('.team-input-m2')?.value.trim() || "";
+
+  // Backend JS tự ghép Tên Đội
+  let autoName = "";
+  if (m0 && m1 && m2) autoName = `${m0} / ${m1} - ${m2}`;
+  else if (m0 && m2) autoName = `${m0} - ${m2}`;
+  else if (m0 && m1) autoName = `${m0} / ${m1}`;
+  else autoName = [m0, m1, m2].filter(Boolean).join(' - ') || `Đội ${teamId}`;
+
+  const menName = (m0 && m1) ? `${m0} - ${m1}` : (m0 || m1);
+  const mixedName = (m0 && m1 && m2) ? `${m0}/${m1}-${m2}` : autoName;
+
+  const updateFn = window.updateTeam || updateTeam;
+  if (typeof updateFn === 'function') {
+    await updateFn(teamId, {
+      name: autoName,
+      menName: menName,
+      mixedName: mixedName,
+      members: [
+        { name: m0, role: "A" },
+        { name: m1, role: "a" },
+        { name: m2, role: "b" }
+      ]
+    });
+    showToast(`Đã cập nhật Đội ${teamId}: "${autoName}"!`);
+  }
 }
 
 /**
@@ -791,7 +965,9 @@ function renderAdminSchedule() {
   const container = document.getElementById('admin-schedule-table-container');
   if (!container) return;
 
-  const matches = Object.values(tournamentData.matches || {});
+  const rawMatches = Object.values(tournamentData.matches || {});
+  const matches = rawMatches.map(m => window.sanitizeMatch ? window.sanitizeMatch(m) : m)
+    .sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0));
   const teams = Object.values(tournamentData.teams || {});
 
   let html = `
@@ -812,46 +988,57 @@ function renderAdminSchedule() {
 
   matches.forEach(m => {
     const isKnockout = m.stage !== 'group';
+    const matchNum = m.matchNo || (m.id ? String(m.id).replace(/\D/g, '') : '') || '?';
+    const matchIdLabel = `#${matchNum}`;
+    const timeVal = m.time || '12:00';
+    const courtVal = Number(m.court) || 1;
+
+    const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
+    const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
 
     html += `
       <tr class="hover:bg-slate-700/30 transition schedule-row" data-match-id="${m.id}">
-        <td class="py-2.5 px-3 font-bold text-white">${m.id}</td>
+        <td class="py-2.5 px-3 font-bold text-white font-mono">${matchIdLabel}</td>
         <td class="py-2.5 px-3">
-          <input type="text" class="input-match-time w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-white" value="${m.time}">
+          <input type="text" class="input-match-time w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-white font-mono font-bold text-xs focus:outline-none focus:border-blue-500" value="${timeVal}" placeholder="HH:MM">
         </td>
         <td class="py-2.5 px-3">
-          <select class="select-match-court bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white">
-            <option value="1" ${m.court === 1 ? 'selected' : ''}>Sân 1</option>
-            <option value="2" ${m.court === 2 ? 'selected' : ''}>Sân 2</option>
-            <option value="3" ${m.court === 3 ? 'selected' : ''}>Sân 3</option>
+          <select class="select-match-court bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white font-bold text-xs focus:outline-none">
+            <option value="1" ${courtVal === 1 ? 'selected' : ''}>Sân 1</option>
+            <option value="2" ${courtVal === 2 ? 'selected' : ''}>Sân 2</option>
+            <option value="3" ${courtVal === 3 ? 'selected' : ''}>Sân 3</option>
           </select>
         </td>
         <td class="py-2.5 px-3">
           ${isKnockout ? `
-            <span class="font-semibold text-white">${getTeamInfo(m.teamA, m.placeholderA).name}</span>
-            <span class="text-slate-400"> vs </span>
-            <span class="font-semibold text-white">${getTeamInfo(m.teamB, m.placeholderB).name}</span>
+            <div class="flex items-center gap-1.5 font-bold">
+              <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-mono text-xs shrink-0">${teamAObj.code}</span>
+              <span class="text-white text-xs truncate" title="${teamAObj.name}">${teamAObj.name}</span>
+              <span class="text-slate-500 font-normal text-xs px-1 shrink-0">vs</span>
+              <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-mono text-xs shrink-0">${teamBObj.code}</span>
+              <span class="text-white text-xs truncate" title="${teamBObj.name}">${teamBObj.name}</span>
+            </div>
           ` : `
             <div class="flex items-center gap-1.5">
-              <select class="select-team-a bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white text-[11px] max-w-[130px]">
+              <select class="select-team-a bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-medium max-w-[160px] focus:outline-none">
                 ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamA ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
               </select>
-              <span class="text-slate-400">vs</span>
-              <select class="select-team-b bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white text-[11px] max-w-[130px]">
+              <span class="text-slate-400 font-bold">vs</span>
+              <select class="select-team-b bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-medium max-w-[160px] focus:outline-none">
                 ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamB ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
               </select>
             </div>
           `}
         </td>
         <td class="py-2.5 px-3">
-          <select class="select-match-status bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white">
+          <select class="select-match-status bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white font-bold text-xs focus:outline-none">
             <option value="scheduled" ${m.status === 'scheduled' ? 'selected' : ''}>Sắp đấu</option>
             <option value="playing" ${m.status === 'playing' ? 'selected' : ''}>Đang đấu</option>
             <option value="completed" ${m.status === 'completed' ? 'selected' : ''}>Đã xong</option>
           </select>
         </td>
         <td class="py-2.5 px-3 text-right">
-          <button class="btn-save-schedule py-1 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition" data-match-id="${m.id}">
+          <button class="btn-save-schedule py-1 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-sm" data-match-id="${m.id}">
             Lưu
           </button>
         </td>
@@ -970,17 +1157,17 @@ function setupDatabaseActionButtons() {
 
   if (btnSeed) {
     btnSeed.addEventListener('click', async () => {
-      const confirmSeed = confirm("Bạn có chắc chắn muốn nạp lại dữ liệu gốc 10 đội & 24 trận lên Database? Tỷ số các trận sẽ được đặt lại ban đầu.");
+      const confirmSeed = confirm("Bạn có chắc chắn muốn nạp lại dữ liệu gốc 10 đội & 52 trận lên Database? Tỷ số các trận sẽ được đặt lại ban đầu.");
       if (confirmSeed) {
         await seedDatabase();
-        showToast("Đã nạp thành công 10 Đội & 24 Trận lên Database!");
+        showToast("Đã nạp thành công 10 Đội & 52 Trận lên Database!");
       }
     });
   }
 
   if (btnReset) {
     btnReset.addEventListener('click', async () => {
-      const confirmReset = confirm("Bạn có chắc chắn muốn reset tỷ số tất cả 24 trận về 0-0?");
+      const confirmReset = confirm("Bạn có chắc chắn muốn reset tỷ số tất cả 52 trận về 0-0?");
       if (confirmReset) {
         const matches = tournamentData.matches || {};
         for (const [id, m] of Object.entries(matches)) {
@@ -998,32 +1185,28 @@ function setupDatabaseActionButtons() {
 
   if (btnSimulate) {
     btnSimulate.addEventListener('click', async () => {
-      const confirmSim = confirm("Bạn có muốn chạy mô phỏng toàn bộ giải đấu (20 trận vòng bảng + Bán kết + Chung kết) để kiểm thử dữ liệu?");
+      const confirmSim = confirm("Bạn có muốn chạy mô phỏng toàn bộ giải đấu (40 trận Vòng bảng + 12 trận Vòng Knockout Playoffs) để kiểm thử dữ liệu?");
       if (!confirmSim) return;
 
-      showToast("Đang chạy mô phỏng toàn bộ giải đấu...", "info");
+      btnSimulate.disabled = true;
+      btnSimulate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang mô phỏng...`;
+      showToast("Đang mô phỏng 40 trận Vòng bảng...", "info");
 
-      // 1. Mô phỏng 20 trận vòng bảng: 1 set chạm 21
       const matches = tournamentData.matches || {};
-      const groupPts = Number(tournamentData.settings?.groupPointsPerSet) || 21;
+      const groupPts = Number(tournamentData.settings?.groupPointsPerSet) || 15;
       const koPts = Number(tournamentData.settings?.knockoutPointsPerSet) || 15;
 
+      // 1. Mô phỏng 40 trận Vòng Bảng (M01 - M40: 1 set chạm 15)
       for (const [id, m] of Object.entries(matches)) {
         if (m.stage === 'group') {
-          // Ngẫu nhiên chọn đội A hoặc đội B thắng 1 set 21
           const isAWin = Math.random() > 0.45;
-          const loserPts = Math.floor(Math.random() * 8) + (groupPts - 8); // từ 13 đến 20
-
+          const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
           const s1a = isAWin ? groupPts : loserPts;
           const s1b = isAWin ? loserPts : groupPts;
           const winner = isAWin ? m.teamA : m.teamB;
 
           await updateMatchScore(id, {
-            scores: [
-              { a: s1a, b: s1b },
-              { a: 0, b: 0 },
-              { a: 0, b: 0 }
-            ],
+            scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
             setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
             winner,
             status: 'completed'
@@ -1031,61 +1214,68 @@ function setupDatabaseActionButtons() {
         }
       }
 
-      // 2. Tự động cập nhật Bán kết từ BXH
-      await checkAndUpdateKnockoutBrackets();
-
-      // Đợi ngắn để state cập nhật
-      await new Promise(r => setTimeout(r, 400));
-
-      // 3. Mô phỏng Bán kết 1 & 2: 3 set chạm 15 (thắng 2)
-      const bk1 = tournamentData.matches['M21'];
-      const bk2 = tournamentData.matches['M22'];
-
-      if (bk1 && bk1.teamA && bk1.teamB) {
-        await updateMatchScore('M21', {
-          scores: [{ a: koPts, b: koPts - 3 }, { a: koPts - 2, b: koPts }, { a: koPts, b: koPts - 4 }],
-          setsWon: { a: 2, b: 1 },
-          winner: bk1.teamA,
-          status: 'completed'
-        });
-      }
-
-      if (bk2 && bk2.teamA && bk2.teamB) {
-        await updateMatchScore('M22', {
-          scores: [{ a: koPts, b: koPts - 4 }, { a: koPts, b: koPts - 2 }, { a: 0, b: 0 }],
-          setsWon: { a: 2, b: 0 },
-          winner: bk2.teamA,
-          status: 'completed'
-        });
-      }
-
-      // Cập nhật Chung kết & Tranh 3-4
+      showToast("Đang cập nhật Bán Kết Đồng Đội...", "info");
       await checkAndUpdateKnockoutBrackets();
       await new Promise(r => setTimeout(r, 400));
 
-      // 4. Mô phỏng Chung kết & Tranh 3-4
-      const ck = tournamentData.matches['M24'];
-      const t34 = tournamentData.matches['M23'];
+      // 2. Mô phỏng 6 trận Bán Kết (M41 - M46: 1 set chạm 15)
+      const bkMatchIds = ['M41', 'M42', 'M43', 'M44', 'M45', 'M46'];
+      for (const id of bkMatchIds) {
+        const m = tournamentData.matches[id];
+        if (m && m.teamA && m.teamB) {
+          const isAWin = Math.random() > 0.4;
+          const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
+          const s1a = isAWin ? koPts : loserPts;
+          const s1b = isAWin ? loserPts : koPts;
+          const winner = isAWin ? m.teamA : m.teamB;
 
-      if (ck && ck.teamA && ck.teamB) {
-        await updateMatchScore('M24', {
-          scores: [{ a: targetPts, b: targetPts - 3 }, { a: targetPts, b: targetPts - 1 }],
-          setsWon: { a: 2, b: 0 },
-          winner: ck.teamA,
-          status: 'completed'
-        });
+          await updateMatchScore(id, {
+            scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+            setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
+            winner,
+            status: 'completed'
+          });
+        }
       }
 
-      if (t34 && t34.teamA && t34.teamB) {
-        await updateMatchScore('M23', {
-          scores: [{ a: targetPts - 4, b: targetPts }, { a: targetPts, b: targetPts - 3 }, { a: targetPts, b: targetPts - 2 }],
-          setsWon: { a: 2, b: 1 },
-          winner: t34.teamA,
-          status: 'completed'
-        });
+      showToast("Đang cập nhật Chung Kết & Tranh Hạng Ba...", "info");
+      await checkAndUpdateKnockoutBrackets();
+      await new Promise(r => setTimeout(r, 400));
+
+      // 3. Mô phỏng 6 trận Chung Kết & Tranh Hạng Ba (M47 - M52: 3 set chạm 15, thắng 2)
+      const finalMatchIds = ['M47', 'M48', 'M49', 'M50', 'M51', 'M52'];
+      for (const id of finalMatchIds) {
+        const m = tournamentData.matches[id];
+        if (m && m.teamA && m.teamB) {
+          const isAWin = Math.random() > 0.5;
+          const isThreeSets = Math.random() > 0.5;
+          const winner = isAWin ? m.teamA : m.teamB;
+
+          let scores, setsWon;
+          if (isThreeSets) {
+            scores = isAWin 
+              ? [{ a: koPts, b: koPts - 3 }, { a: koPts - 2, b: koPts }, { a: koPts, b: koPts - 4 }]
+              : [{ a: koPts - 3, b: koPts }, { a: koPts, b: koPts - 2 }, { a: koPts - 4, b: koPts }];
+            setsWon = isAWin ? { a: 2, b: 1 } : { a: 1, b: 2 };
+          } else {
+            scores = isAWin 
+              ? [{ a: koPts, b: koPts - 4 }, { a: koPts, b: koPts - 2 }, { a: 0, b: 0 }]
+              : [{ a: koPts - 4, b: koPts }, { a: koPts - 2, b: koPts }, { a: 0, b: 0 }];
+            setsWon = isAWin ? { a: 2, b: 0 } : { a: 0, b: 2 };
+          }
+
+          await updateMatchScore(id, {
+            scores,
+            setsWon,
+            winner,
+            status: 'completed'
+          });
+        }
       }
 
-      showToast("Mô phỏng toàn bộ giải đấu hoàn tất! Hãy mở trang Xem Live để kiểm tra.");
+      btnSimulate.disabled = false;
+      btnSimulate.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Mô Phỏng Kết Quả Toàn Giải`;
+      showToast("Mô phỏng toàn bộ 52 trận hoàn tất! Mời kiểm tra Bảng Điểm & Sơ Đồ Cây.");
     });
   }
 }
@@ -1096,41 +1286,66 @@ function setupDatabaseActionButtons() {
 async function checkAndUpdateKnockoutBrackets() {
   const matches = tournamentData.matches || {};
   const groupMatches = Object.values(matches).filter(m => m.stage === 'group');
-  const allGroupDone = groupMatches.length === 20 && groupMatches.every(m => m.status === 'completed');
+  const allGroupDone = groupMatches.length === 40 && groupMatches.every(m => m.status === 'completed');
 
   if (allGroupDone) {
     const topX = getGroupTopTeams('X');
     const topD = getGroupTopTeams('D');
 
     if (topX.length >= 2 && topD.length >= 2) {
-      await updateMatchSchedule('M21', {
-        teamA: topX[0].id,
-        teamB: topD[1].id
-      });
+      const bk1TeamA = topX[0].id; // Nhất X
+      const bk1TeamB = topD[1].id; // Nhì Đ
 
-      await updateMatchSchedule('M22', {
-        teamA: topD[0].id,
-        teamB: topX[1].id
-      });
+      const bk2TeamA = topD[0].id; // Nhất Đ
+      const bk2TeamB = topX[1].id; // Nhì X
+
+      // Bán kết 1 (M41, M43, M45)
+      await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
+      await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
+      await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
+
+      // Bán kết 2 (M42, M44, M46)
+      await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
+      await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
+      await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
     }
   }
 
-  const bk1 = matches['M21'];
-  const bk2 = matches['M22'];
+  // Kiểm tra Bán kết để gán Chung kết & Tranh 3-4
+  const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
+  const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
 
-  if (bk1 && bk2 && bk1.status === 'completed' && bk2.status === 'completed' && bk1.winner && bk2.winner) {
-    const loser1 = bk1.winner === bk1.teamA ? bk1.teamB : bk1.teamA;
-    const loser2 = bk2.winner === bk2.teamA ? bk2.teamB : bk2.teamA;
+  const bk1Done = bk1Matches.length === 3 && bk1Matches.every(m => m.status === 'completed');
+  const bk2Done = bk2Matches.length === 3 && bk2Matches.every(m => m.status === 'completed');
 
-    await updateMatchSchedule('M24', {
-      teamA: bk1.winner,
-      teamB: bk2.winner
+  if (bk1Done && bk2Done) {
+    let bk1WinsA = 0, bk1WinsB = 0;
+    bk1Matches.forEach(m => {
+      if (m.winner === m.teamA) bk1WinsA++;
+      else if (m.winner === m.teamB) bk1WinsB++;
     });
+    const bk1Winner = bk1WinsA >= bk1WinsB ? bk1Matches[0].teamA : bk1Matches[0].teamB;
+    const bk1Loser = bk1WinsA >= bk1WinsB ? bk1Matches[0].teamB : bk1Matches[0].teamA;
 
-    await updateMatchSchedule('M23', {
-      teamA: loser1,
-      teamB: loser2
+    let bk2WinsA = 0, bk2WinsB = 0;
+    bk2Matches.forEach(m => {
+      if (m.winner === m.teamA) bk2WinsA++;
+      else if (m.winner === m.teamB) bk2WinsB++;
     });
+    const bk2Winner = bk2WinsA >= bk2WinsB ? bk2Matches[0].teamA : bk2Matches[0].teamB;
+    const bk2Loser = bk2WinsA >= bk2WinsB ? bk2Matches[0].teamB : bk2Matches[0].teamA;
+
+    if (bk1Winner && bk2Winner) {
+      // Tranh Vô Địch (M47, M49, M51)
+      await updateMatchSchedule('M47', { teamA: bk1Winner, teamB: bk2Winner });
+      await updateMatchSchedule('M49', { teamA: bk1Winner, teamB: bk2Winner });
+      await updateMatchSchedule('M51', { teamA: bk1Winner, teamB: bk2Winner });
+
+      // Tranh Hạng Ba (M48, M50, M52)
+      await updateMatchSchedule('M48', { teamA: bk1Loser, teamB: bk2Loser });
+      await updateMatchSchedule('M50', { teamA: bk1Loser, teamB: bk2Loser });
+      await updateMatchSchedule('M52', { teamA: bk1Loser, teamB: bk2Loser });
+    }
   }
 }
 
@@ -1141,34 +1356,69 @@ function getGroupTopTeams(groupKey) {
 
   const stats = {};
   groupTeams.forEach(t => {
-    stats[t.id] = { id: t.id, won: 0, setsDiff: 0, pointsDiff: 0, pts: 0 };
+    stats[t.id] = { id: t.id, won: 0, pointsDiff: 0, pointsWon: 0 };
   });
 
   matches.forEach(m => {
     if (m.stage === 'group' && m.group === groupKey && m.status === 'completed' && m.winner) {
       if (stats[m.winner]) {
         stats[m.winner].won += 1;
-        stats[m.winner].pts += 1;
       }
-      const setsWon = m.setsWon || { a: 0, b: 0 };
-      if (stats[m.teamA]) stats[m.teamA].setsDiff += (setsWon.a - setsWon.b);
-      if (stats[m.teamB]) stats[m.teamB].setsDiff += (setsWon.b - setsWon.a);
+      (m.scores || []).forEach(sc => {
+        if (stats[m.teamA]) {
+          stats[m.teamA].pointsWon += sc.a;
+          stats[m.teamA].pointsDiff += (sc.a - sc.b);
+        }
+        if (stats[m.teamB]) {
+          stats[m.teamB].pointsWon += sc.b;
+          stats[m.teamB].pointsDiff += (sc.b - sc.a);
+        }
+      });
     }
   });
 
   return Object.values(stats).sort((a, b) => {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    return b.setsDiff - a.setsDiff;
+    if (b.won !== a.won) return b.won - a.won;
+    if (b.pointsDiff !== a.pointsDiff) return b.pointsDiff - a.pointsDiff;
+    return b.pointsWon - a.pointsWon;
   });
 }
 
-function getTeamInfo(teamId, placeholder = "Chưa xác định") {
+function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null, match = null) {
   if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
-    return { name: placeholder, membersText: "" };
+    return {
+      id: null,
+      code: placeholder,
+      name: placeholder,
+      membersText: ""
+    };
   }
   const t = tournamentData.teams[teamId];
+  let displayName = t.name || placeholder;
+
+  const members = t.members || [];
+  const mA = members.find(m => m.role === 'A') || members[0] || { name: "" };
+  const ma = members.find(m => m.role === 'a') || members[1] || { name: "" };
+  const mb = members.find(m => m.role === 'b') || members[2] || { name: "" };
+
+  const subType = match?.subType || "";
+  const matchCode = match?.code || "";
+
+  if (subType === 'Ab' || matchCode.includes('Ab')) {
+    if (mA.name && mb.name) displayName = `${mA.name} / ${mb.name}`;
+  } else if (subType === 'ab' || matchCode.includes('ab')) {
+    if (ma.name && mb.name) displayName = `${ma.name} / ${mb.name}`;
+  } else if (subType === 'Aa' || matchCode.includes('Aa') || category === 'men') {
+    if (t.menName) displayName = t.menName;
+    else if (mA.name && ma.name) displayName = `${mA.name} - ${ma.name}`;
+  } else if (category === 'mixed' && t.mixedName) {
+    displayName = t.mixedName;
+  }
+
   return {
-    name: t.name,
+    id: teamId,
+    code: t.code || t.name || placeholder,
+    name: displayName,
     membersText: (t.members || []).map(m => m.name).join(' - ')
   };
 }

@@ -1,7 +1,7 @@
 /**
  * CLIENT APP LOGIC (NGƯỜI XEM) - GIẢI CẦU LÔNG GIAO HƯU 2026
- * Tự động lắng nghe thay đổi từ Database (Firebase Realtime hoặc LocalStorage)
- * Hiển thị điểm trực tiếp 3 sân, Lịch đấu có tìm kiếm, Bảng xếp hạng và Nhánh đấu Knockout.
+ * Hỗ trợ chuẩn xác 100% toàn bộ 48 trận đấu (Đôi Nam Nữ & Đôi Nam)
+ * Phong cách Cyberpunk / E-Sports Dark Navy & Glowing Cyan chuẩn theo giao diện mẫu
  */
 
 // Lấy các service từ window (hỗ trợ cả file:// và http://)
@@ -16,15 +16,19 @@ let tournamentData = {
 };
 
 let currentFilter = 'all';
+let currentCategory = 'all'; // 'all', 'mixed', 'men'
 let searchQuery = '';
 let previousScores = {}; // Lưu điểm số lần trước để phát hiện điểm nhảy và tạo hiệu ứng flash
 let isTvMode = false;
+let groupAccordionState = {}; // Lưu trạng thái đóng/mở của accordion lịch đấu từng bảng
+let scheduleViewMode = 'cards'; // 'cards' (Thẻ Bảng Điểm Chuẩn) hoặc 'rows' (Hàng Ngang)
 
 async function startClientApp() {
   setupLiveClock();
   setupTabNavigation();
-  setupScheduleFilters();
+  setupCategoryFilters();
   setupSearchInput();
+  setupRankRulesModal();
   setupTvMode();
   setupQrCodeModal();
 
@@ -41,7 +45,7 @@ async function startClientApp() {
   });
 }
 
-// Khởi chạy khi DOM sẵn sàng (hỗ trợ cả trường hợp đã load xong)
+// Khởi chạy khi DOM sẵn sàng
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', startClientApp);
 } else {
@@ -99,12 +103,12 @@ function updateSyncIndicator(mode) {
 
   if (mode === 'firebase') {
     syncText.textContent = "Cloud DB: Online";
-    syncIcon.className = "fa-solid fa-cloud text-emerald-400";
-    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold";
+    syncIcon.className = "fa-solid fa-cloud text-cyan-400";
+    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold";
   } else {
-    syncText.textContent = "Chế độ: Local Storage";
+    syncText.textContent = "Local Storage";
     syncIcon.className = "fa-solid fa-hard-drive text-amber-400";
-    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold";
+    if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold";
   }
 }
 
@@ -124,15 +128,14 @@ function setupTvMode() {
     document.body.classList.toggle('tv-mode', isTvMode);
 
     if (isTvMode) {
-      tvBtn.classList.add('bg-amber-500', 'text-slate-900');
-      tvBtn.classList.remove('bg-white/10', 'text-white');
-      // Thử fullscreen nếu trình duyệt hỗ trợ
+      tvBtn.classList.add('bg-amber-500', 'text-slate-900', 'border-amber-400');
+      tvBtn.classList.remove('bg-[#0c1626]', 'text-amber-300');
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
     } else {
-      tvBtn.classList.remove('bg-amber-500', 'text-slate-900');
-      tvBtn.classList.add('bg-white/10', 'text-white');
+      tvBtn.classList.remove('bg-amber-500', 'text-slate-900', 'border-amber-400');
+      tvBtn.classList.add('bg-[#0c1626]', 'text-amber-300');
       if (document.exitFullscreen && document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
@@ -141,12 +144,12 @@ function setupTvMode() {
 }
 
 /**
- * Điều hướng Tab (Trực tiếp, Lịch đấu, BXH, Knockout)
+ * Điều hướng Tab (Lịch & Địa Điểm, Thể Lệ, Bảng Điểm, Trực Tiếp Sân, Knockout)
  */
 function setupTabNavigation() {
   const tabs = [
-    { btn: 'tab-btn-live', section: 'section-live' },
     { btn: 'tab-btn-schedule', section: 'section-schedule' },
+    { btn: 'tab-btn-rules', section: 'section-rules' },
     { btn: 'tab-btn-standings', section: 'section-standings' },
     { btn: 'tab-btn-bracket', section: 'section-bracket' }
   ];
@@ -160,49 +163,209 @@ function setupTabNavigation() {
         const b = document.getElementById(t.btn);
         const s = document.getElementById(t.section);
         if (b) {
-          b.className = "tab-btn px-3.5 py-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/10 whitespace-nowrap transition flex items-center gap-1.5";
+          b.classList.remove('tab-pill-cyan-active');
+          b.classList.add('tab-pill-cyan-inactive');
         }
         if (s) s.classList.add('hidden');
       });
 
-      btnEl.className = "tab-btn active px-3.5 py-1.5 rounded-lg bg-white text-blue-800 font-bold shadow-sm whitespace-nowrap transition flex items-center gap-1.5";
+      btnEl.classList.remove('tab-pill-cyan-inactive');
+      btnEl.classList.add('tab-pill-cyan-active');
       const targetSec = document.getElementById(section);
       if (targetSec) targetSec.classList.remove('hidden');
     });
   });
+
+  // Nút quay lại Bảng Điểm từ tab Thể Lệ
+  const backBtn = document.getElementById('btn-back-to-standings');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      const standingsTab = document.getElementById('tab-btn-standings');
+      if (standingsTab) standingsTab.click();
+    });
+  }
 }
 
 /**
- * Bộ lọc lịch thi đấu theo sân / bảng
+ * Bộ lọc Danh mục thi đấu (TẤT CẢ, ĐÔI NAM NỮ, ĐÔI NAM)
  */
-function setupScheduleFilters() {
-  const filterBtns = document.querySelectorAll('.filter-btn');
-  filterBtns.forEach(btn => {
+function setupCategoryFilters() {
+  const catBtns = document.querySelectorAll('.cat-filter-btn');
+  catBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      filterBtns.forEach(b => {
-        b.classList.remove('bg-blue-600', 'text-white');
-        b.classList.add('bg-white', 'text-slate-700');
+      catBtns.forEach(b => {
+        b.classList.remove('active', 'bg-gradient-to-r', 'from-cyan-600', 'to-cyan-500', 'text-white', 'border-cyan-400', 'shadow-[0_0_12px_rgba(6,182,212,0.5)]');
+        b.classList.add('bg-[#0c1524]', 'hover:bg-[#132238]', 'border-[#1c2e47]', 'text-slate-300');
       });
-      btn.classList.add('bg-blue-600', 'text-white');
-      btn.classList.remove('bg-white', 'text-slate-700');
 
-      currentFilter = btn.dataset.filter;
+      btn.classList.add('active', 'bg-gradient-to-r', 'from-cyan-600', 'to-cyan-500', 'text-white', 'border-cyan-400', 'shadow-[0_0_12px_rgba(6,182,212,0.5)]');
+      btn.classList.remove('bg-[#0c1524]', 'hover:bg-[#132238]', 'border-[#1c2e47]', 'text-slate-300');
+
+      currentCategory = btn.dataset.cat || 'all';
+      renderStandings();
       renderScheduleList();
     });
   });
 }
 
 /**
- * Ô tìm kiếm VĐV hoặc mã đội trong lịch thi đấu
+ * Bộ lọc lịch thi đấu theo sân / knockout
+ */
+function setupScheduleFilters() {
+  const filterBtns = document.querySelectorAll('.schedule-filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => {
+        b.classList.remove('active', 'bg-cyan-600', 'text-white', 'shadow-[0_0_10px_rgba(0,229,255,0.4)]', 'border-cyan-400');
+        b.classList.add('bg-[#091120]', 'text-slate-300', 'border-[#16263f]');
+      });
+      btn.classList.add('active', 'bg-cyan-600', 'text-white', 'shadow-[0_0_10px_rgba(0,229,255,0.4)]', 'border-cyan-400');
+      btn.classList.remove('bg-[#091120]', 'text-slate-300', 'border-[#16263f]');
+
+      currentFilter = btn.dataset.filter;
+      renderScheduleList();
+    });
+  });
+
+  const modeBtns = document.querySelectorAll('.schedule-view-mode-btn');
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => {
+        b.classList.remove('active', 'bg-cyan-600', 'text-white', 'shadow-sm', 'border-cyan-400');
+        b.classList.add('text-slate-400');
+      });
+      btn.classList.add('active', 'bg-cyan-600', 'text-white', 'shadow-sm', 'border-cyan-400');
+      btn.classList.remove('text-slate-400');
+
+      scheduleViewMode = btn.dataset.mode || 'cards';
+      renderScheduleList();
+    });
+  });
+}
+
+/**
+ * Ô tìm kiếm toàn cục VĐV hoặc mã đội
  */
 function setupSearchInput() {
-  const searchInput = document.getElementById('schedule-search-input');
+  const searchInput = document.getElementById('global-search-input');
+  const clearBtn = document.getElementById('btn-clear-search');
   if (!searchInput) return;
 
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim().toLowerCase();
+    if (clearBtn) {
+      if (searchQuery) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+    }
+    renderStandings();
     renderScheduleList();
   });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearBtn.classList.add('hidden');
+      renderStandings();
+      renderScheduleList();
+    });
+  }
+}
+
+/**
+ * Modal Cách tính xếp hạng vòng bảng
+ */
+function setupRankRulesModal() {
+  const modal = document.getElementById('rank-rules-modal');
+  const openBtn = document.getElementById('btn-open-rank-rules');
+  const closeBtn = document.getElementById('btn-close-rank-rules');
+  const okBtn = document.getElementById('btn-ok-rank-rules');
+
+  const openModal = () => {
+    if (modal) modal.classList.remove('hidden');
+  };
+  const closeModal = () => {
+    if (modal) modal.classList.add('hidden');
+  };
+
+  if (openBtn) openBtn.addEventListener('click', openModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (okBtn) okBtn.addEventListener('click', closeModal);
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  // Cho phép gọi từ ngoài HTML
+  window.openRankRulesModal = openModal;
+}
+
+/**
+ * Modal mã QR
+ */
+function setupQrCodeModal() {
+  const modal = document.getElementById('qr-modal');
+  const btnOpen = document.getElementById('btn-qr-modal');
+  const btnOpenMobile = document.getElementById('btn-qr-modal-mobile');
+  const btnClose = document.getElementById('btn-close-qr');
+  const qrBox = document.getElementById('qrcode-box');
+  const qrUrlInput = document.getElementById('qr-url-input');
+  const btnPrint = document.getElementById('btn-print-qr');
+  const btnDownload = document.getElementById('btn-download-qr');
+
+  if (!modal) return;
+
+  let qrInstance = null;
+
+  const openQr = () => {
+    const currentUrl = window.location.href;
+    if (qrUrlInput) qrUrlInput.value = currentUrl;
+
+    if (qrBox && window.QRCode) {
+      qrBox.innerHTML = '';
+      qrInstance = new QRCode(qrBox, {
+        text: currentUrl,
+        width: 190,
+        height: 190,
+        colorDark: "#0c1524",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+    modal.classList.remove('hidden');
+  };
+
+  const closeQr = () => {
+    modal.classList.add('hidden');
+  };
+
+  if (btnOpen) btnOpen.addEventListener('click', openQr);
+  if (btnOpenMobile) btnOpenMobile.addEventListener('click', openQr);
+  if (btnClose) btnClose.addEventListener('click', closeQr);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeQr();
+  });
+
+  if (btnPrint) {
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+      const img = qrBox.querySelector('img');
+      if (img && img.src) {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'ma-qr-giai-cau-long-2026.png';
+        a.click();
+      }
+    });
+  }
 }
 
 /**
@@ -223,374 +386,298 @@ function renderAllViews() {
       "3_sets_15": "Thể thức: 3 hiệp 15 điểm (Thắng 2)",
       "3_sets_21": "Thể thức: 3 hiệp 21 điểm (Thắng 2)",
       "1_set_21": "Thể thức: 1 hiệp 21 điểm",
-      "1_set_31": "Thể thức: 1 hiệp 31 điểm"
+      "1_set_31": "Thể thức: 1 hiệp 31 điểm",
+      "mixed_group21_ko15": "Vòng bảng: 1 set 21 • Knockout: 3 set 15"
     };
-    formatBadge.textContent = formatMap[settings.format] || "Thể thức: 3 hiệp 15 điểm";
+    formatBadge.textContent = formatMap[settings.format] || "Thể thức: 1 set 21 / 3 set 15";
   }
 
-  renderLiveCourts();
-  renderScheduleList();
   renderStandings();
   renderBracket();
 }
 
 /**
- * 1. RENDER 3 SÂN THI ĐẤU (COURT CARDS)
- */
-function renderLiveCourts() {
-  const container = document.getElementById('courts-container');
-  if (!container) return;
-
-  const matches = Object.values(tournamentData.matches || {});
-  const courts = [1, 2, 3];
-
-  let html = '';
-
-  courts.forEach(courtNumber => {
-    // 1. Tìm trận đang đấu trên sân này
-    let activeMatch = matches.find(m => m.court === courtNumber && m.status === 'playing');
-    
-    // 2. Nếu không có, tìm trận sắp đấu tiếp theo
-    if (!activeMatch) {
-      activeMatch = matches.find(m => m.court === courtNumber && m.status === 'scheduled');
-    }
-
-    // 3. Nếu vẫn không có, lấy trận vừa kết thúc gần nhất
-    if (!activeMatch) {
-      const finished = matches.filter(m => m.court === courtNumber && m.status === 'completed');
-      if (finished.length > 0) {
-        activeMatch = finished[finished.length - 1];
-      }
-    }
-
-    if (!activeMatch) {
-      html += `
-        <div class="court-card bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col justify-between">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <span class="font-extrabold text-base text-slate-800">SÂN ${courtNumber}</span>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">Trống</span>
-          </div>
-          <div class="py-10 text-center text-slate-400 text-sm">
-            <i class="fa-solid fa-moon text-3xl mb-2 text-slate-300"></i>
-            <p>Hiện không có trận đấu</p>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA);
-    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB);
-
-    const isLive = activeMatch.status === 'playing';
-    const isCompleted = activeMatch.status === 'completed';
-
-    const formatInfo = window.getMatchFormat ? window.getMatchFormat(activeMatch, tournamentData.settings) : {
-      isGroup: activeMatch.stage === 'group',
-      maxSets: activeMatch.stage === 'group' ? 1 : 3,
-      targetPts: activeMatch.stage === 'group' ? 21 : 15,
-      label: activeMatch.stage === 'group' ? "1 set 21" : "3 set 15"
-    };
-
-    // Badge trạng thái
-    let statusBadge = '';
-    if (isLive) {
-      statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-600 border border-rose-200 shadow-sm animate-pulse">
-        <span class="live-indicator"></span> ĐANG ĐẤU
-      </span>`;
-    } else if (isCompleted) {
-      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
-        <i class="fa-solid fa-check mr-1"></i> ĐÃ XONG
-      </span>`;
-    } else {
-      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-        <i class="fa-regular fa-clock mr-1"></i> ${activeMatch.time}
-      </span>`;
-    }
-
-    const scores = activeMatch.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
-    const setsWon = activeMatch.setsWon || { a: 0, b: 0 };
-
-    // Tỷ số hiển thị theo bố cục tối giản như ảnh ví dụ: [15 - 7]
-    let scoreText = '';
-    let subDetailText = '';
-
-    if (formatInfo.isGroup) {
-      // VÒNG BẢNG: 1 set chạm 21 -> Hiển thị thẳng điểm số [A - B]
-      const s1 = scores[0] || { a: 0, b: 0 };
-      scoreText = `[${s1.a} - ${s1.b}]`;
-      subDetailText = `Thể thức: 1 set chạm 21`;
-    } else {
-      // VÒNG TRONG: 3 set chạm 15
-      if (isLive) {
-        // Đang diễn ra: hiển thị điểm set hiện tại
-        const setIdx = Math.min((setsWon.a + setsWon.b), 2);
-        const curScore = scores[setIdx] || { a: 0, b: 0 };
-        scoreText = `[${curScore.a} - ${curScore.b}]`;
-        subDetailText = `Đang đánh Set ${setIdx + 1} (Tỷ số set: ${setsWon.a}-${setsWon.b})`;
-      } else {
-        scoreText = `[${setsWon.a} - ${setsWon.b}]`;
-        const played = scores.filter(s => s.a > 0 || s.b > 0).map(s => `${s.a}-${s.b}`).join(', ');
-        subDetailText = played ? `Các set: ${played}` : `Thể thức: 3 set 15 (thắng 2)`;
-      }
-    }
-
-    const courtColor = courtNumber === 1 
-      ? 'from-blue-600 to-indigo-600' 
-      : courtNumber === 2 
-      ? 'from-indigo-600 to-purple-600' 
-      : 'from-emerald-600 to-teal-600';
-
-    html += `
-      <div class="court-card bg-white rounded-3xl shadow-sm border ${isLive ? 'border-blue-400 ring-4 ring-blue-500/10' : 'border-slate-200'} p-5 sm:p-6 flex flex-col justify-between" data-match-id="${activeMatch.id}">
-        
-        <!-- Header Sân -->
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div class="flex items-center gap-2">
-            <span class="w-7 h-7 rounded-lg bg-gradient-to-br ${courtColor} text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
-              ${courtNumber}
-            </span>
-            <div>
-              <span class="font-extrabold text-sm text-slate-800">SÂN ${courtNumber}</span>
-              <span class="text-[11px] text-slate-400 ml-1.5 font-medium">Trận ${activeMatch.id}</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
-              ${formatInfo.label}
-            </span>
-            ${statusBadge}
-          </div>
-        </div>
-
-        <!-- BẢNG ĐIỂM TỐI GIẢN CHÍNH XÁC THEO BỐ CỤC ẢNH MẪU -->
-        <div class="my-3 py-4 px-4 sm:px-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between shadow-inner">
-          <!-- Đội A (Bên Trái) -->
-          <div class="w-5/12 text-left">
-            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
-              ${teamA.code || teamA.id}
-            </div>
-            <div class="text-xs text-slate-400 font-medium truncate" title="${teamA.name}">
-              ${teamA.name}
-            </div>
-          </div>
-
-          <!-- Trung tâm: Giờ & Tỷ số [15 - 7] (Như ảnh tham khảo) -->
-          <div class="w-2/12 flex flex-col items-center justify-center text-center">
-            <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 text-[11px] font-mono font-bold border border-cyan-800/50 mb-1">
-              ${activeMatch.time}
-            </span>
-            <div class="text-xl sm:text-2xl font-mono font-black text-emerald-400 tracking-wider whitespace-nowrap">
-              ${scoreText}
-            </div>
-          </div>
-
-          <!-- Đội B (Bên Phải) -->
-          <div class="w-5/12 text-right">
-            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
-              ${teamB.code || teamB.id}
-            </div>
-            <div class="text-xs text-slate-400 font-medium truncate" title="${teamB.name}">
-              ${teamB.name}
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer Card -->
-        <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
-          <span class="text-[11px] text-slate-500 font-mono">
-            ${subDetailText}
-          </span>
-          <span class="text-slate-500 font-semibold truncate max-w-[150px] text-right">
-            ${activeMatch.label || activeMatch.note || 'Vòng Bảng'}
-          </span>
-        </div>
-
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-}
-
-/**
- * 2. RENDER LỊCH THI ĐẤU & KẾT QUẢ (SCHEDULE LIST CÓ TÌM KIẾM)
- */
-function renderScheduleList() {
-  const container = document.getElementById('schedule-list-container');
-  if (!container) return;
-
-  const matches = Object.values(tournamentData.matches || {});
-  
-  // Áp dụng bộ lọc và tìm kiếm
-  const filtered = matches.filter(m => {
-    // 1. Lọc theo danh mục
-    let passFilter = true;
-    if (currentFilter === 'court-1') passFilter = m.court === 1;
-    else if (currentFilter === 'court-2') passFilter = m.court === 2;
-    else if (currentFilter === 'court-3') passFilter = m.court === 3;
-    else if (currentFilter === 'group-x') passFilter = m.group === 'X';
-    else if (currentFilter === 'group-d') passFilter = m.group === 'D';
-    else if (currentFilter === 'knockout') passFilter = m.stage !== 'group';
-    if (!passFilter) return false;
-
-    // 2. Lọc theo từ khóa tìm kiếm (Tên đội, Tên VĐV, Mã trận, Mã đội)
-    if (searchQuery) {
-      const teamA = getTeamDisplay(m.teamA, m.placeholderA);
-      const teamB = getTeamDisplay(m.teamB, m.placeholderB);
-      const matchText = [
-        m.id,
-        m.code || '',
-        teamA.name,
-        teamA.membersText,
-        teamA.code,
-        teamB.name,
-        teamB.membersText,
-        teamB.code,
-        m.time
-      ].join(' ').toLowerCase();
-
-      return matchText.includes(searchQuery);
-    }
-
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="bg-white rounded-2xl p-10 text-center text-slate-400 border border-slate-200">
-        <i class="fa-solid fa-magnifying-glass text-3xl mb-3 text-slate-300"></i>
-        <p class="text-sm font-semibold text-slate-600">Không tìm thấy trận đấu phù hợp</p>
-        <p class="text-xs text-slate-400 mt-1">Thử đổi từ khóa tìm kiếm hoặc chọn bộ lọc "Tất cả"</p>
-      </div>
-    `;
-    return;
-  }
-
-  let html = '';
-  filtered.forEach(m => {
-    const teamA = getTeamDisplay(m.teamA, m.placeholderA);
-    const teamB = getTeamDisplay(m.teamB, m.placeholderB);
-
-    const isLive = m.status === 'playing';
-    const isCompleted = m.status === 'completed';
-
-    const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
-    const setsWon = m.setsWon || { a: 0, b: 0 };
-
-    const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
-      isGroup: m.stage === 'group',
-      maxSets: m.stage === 'group' ? 1 : 3,
-      targetPts: m.stage === 'group' ? 21 : 15,
-      label: m.stage === 'group' ? "1 set 21" : "3 set 15"
-    };
-
-    const s1 = scores[0] || { a: 0, b: 0 };
-    const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
-
-    html += `
-      <div class="bg-white rounded-2xl border ${isLive ? 'border-blue-400 shadow-md ring-2 ring-blue-500/20' : 'border-slate-200'} p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-slate-300 hover:shadow-sm" data-match-id="${m.id}">
-        
-        <!-- Cột 1: Thông tin Trận, Giờ, Sân & Thể thức -->
-        <div class="flex items-center space-x-3 sm:w-1/4">
-          <div class="w-12 h-12 rounded-2xl ${m.court === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : m.court === 2 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} flex flex-col items-center justify-center font-black border shadow-xs">
-            <span class="text-[10px] uppercase font-bold tracking-tight opacity-70">Sân</span>
-            <span class="text-lg leading-none">${m.court}</span>
-          </div>
-          <div>
-            <div class="text-xs font-black text-slate-800 flex items-center gap-1.5">
-              <span>${m.time} • Trận ${m.id}</span>
-              <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 font-mono">${formatInfo.label}</span>
-            </div>
-            <div class="text-[11px] text-slate-500 font-medium">${m.label || m.note || 'Vòng Bảng'}</div>
-          </div>
-        </div>
-
-        <!-- Cột 2: Cặp đấu & Tỷ số (Tối giản chuẩn xác) -->
-        <div class="flex-grow flex items-center justify-between sm:justify-center gap-3 sm:gap-6">
-          <!-- Đội A -->
-          <div class="text-right sm:w-5/12 ${m.winner === m.teamA ? 'font-bold text-emerald-700' : 'text-slate-800'}">
-            <div class="text-xs sm:text-sm font-bold flex items-center justify-end gap-1.5">
-              <span class="truncate max-w-[140px] sm:max-w-[170px]">${teamA.name}</span>
-              <span class="w-5 h-5 rounded-md ${teamA.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
-                ${teamA.code}
-              </span>
-            </div>
-            <div class="text-[10px] text-slate-500 truncate max-w-[190px] ml-auto font-medium">${teamA.membersText}</div>
-          </div>
-
-          <!-- Tỷ số Trung tâm [A - B] -->
-          <div class="flex flex-col items-center justify-center min-w-[76px]">
-            <div class="px-3 py-1 rounded-xl font-mono font-black text-base tracking-wider border shadow-xs ${
-              isLive 
-                ? 'bg-rose-500 text-white border-rose-600 animate-pulse' 
-                : formatInfo.isGroup 
-                ? 'bg-slate-900 text-emerald-400 border-slate-800' 
-                : 'bg-slate-100 text-slate-800 border-slate-200'
-            }">
-              ${formatInfo.isGroup ? `[${s1.a} - ${s1.b}]` : `[${setsWon.a} - ${setsWon.b}]`}
-            </div>
-            ${isLive ? '<span class="live-indicator mt-1"></span>' : ''}
-          </div>
-
-          <!-- Đội B -->
-          <div class="text-left sm:w-5/12 ${m.winner === m.teamB ? 'font-bold text-emerald-700' : 'text-slate-800'}">
-            <div class="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-              <span class="w-5 h-5 rounded-md ${teamB.group === 'X' ? 'bg-blue-600' : 'bg-rose-600'} text-white text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
-                ${teamB.code}
-              </span>
-              <span class="truncate max-w-[140px] sm:max-w-[170px]">${teamB.name}</span>
-            </div>
-            <div class="text-[10px] text-slate-500 truncate max-w-[190px] font-medium">${teamB.membersText}</div>
-          </div>
-        </div>
-
-        <!-- Cột 3: Chi tiết các set & Trạng thái -->
-        <div class="sm:w-1/4 flex sm:flex-col sm:items-end justify-between items-center text-xs">
-          <div class="font-mono text-slate-600">
-            ${
-              formatInfo.isGroup
-                ? `<span class="text-[11px] text-slate-400 font-sans italic">1 set chạm 21</span>`
-                : playedSets.length > 0
-                ? `<div class="flex items-center gap-1">${playedSets.map(s => `<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-200">${s.a}-${s.b}</span>`).join('')}</div>`
-                : `<span class="text-[11px] text-slate-400 font-sans italic">3 set 15</span>`
-            }
-          </div>
-          <div class="mt-1">
-            ${isLive 
-              ? '<span class="text-rose-600 font-bold text-xs flex items-center gap-1.5"><span class="live-indicator"></span>Đang đấu</span>'
-              : isCompleted
-              ? '<span class="text-emerald-600 font-bold text-xs flex items-center gap-1"><i class="fa-solid fa-check"></i> Đã xong</span>'
-              : '<span class="text-slate-400 font-medium text-xs">Sắp diễn ra</span>'
-            }
-          </div>
-        </div>
-
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-}
-
-/**
- * 3. RENDER BẢNG XẾP HẠNG (STANDINGS)
+ * =========================================================================
+ * 1. RENDER BẢNG ĐIỂM (STANDINGS + IN-CARD MATCH SCHEDULES) - 48 TRẬN CHUẨN XÁC
+ * =========================================================================
  */
 function renderStandings() {
-  const standingsX = calculateGroupStandings('X');
-  const standingsD = calculateGroupStandings('D');
+  const container = document.getElementById('groups-container');
+  if (!container) return;
 
-  renderStandingsTable('standings-body-x', standingsX, 'X');
-  renderStandingsTable('standings-body-d', standingsD, 'D');
+  const teams = tournamentData.teams || {};
+  const matches = Object.values(tournamentData.matches || {});
+
+  const groups = [
+    { key: 'X', name: 'BẢNG XANH (BẢNG X)', color: 'cyan' },
+    { key: 'D', name: 'BẢNG ĐỎ (BẢNG Đ)', color: 'rose' }
+  ];
+
+  let html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 w-full">';
+
+  groups.forEach(grp => {
+    const groupKey = grp.key;
+    const isCyan = grp.color === 'cyan';
+    const accordionId = `group-standings-${groupKey}`;
+
+    const groupMatches = matches.filter(m => m.stage === 'group' && m.group === groupKey);
+    const completedMatchesCount = groupMatches.filter(m => m.status === 'completed').length;
+    const groupTeamsList = Object.values(teams).filter(t => t.group === groupKey);
+
+    const standingsList = calculateGroupStandings(groupKey);
+
+    let displayedStandings = standingsList;
+    if (searchQuery) {
+      displayedStandings = standingsList.filter(item => {
+        const team = item.team;
+        const membersStr = (team.members || []).map(m => m.name).join(' ');
+        const searchPool = [team.name, team.code, team.id, team.menName || '', team.mixedName || '', membersStr].join(' ').toLowerCase();
+        return searchPool.includes(searchQuery);
+      });
+    }
+
+    let tableRowsHtml = '';
+    if (displayedStandings.length === 0) {
+      tableRowsHtml = `
+        <tr>
+          <td colspan="6" class="py-6 text-center text-slate-500 italic text-xs">
+            Không có VĐV nào khớp với từ khóa tìm kiếm
+          </td>
+        </tr>
+      `;
+    } else {
+      displayedStandings.forEach((item, index) => {
+        const rank = index + 1;
+        const ptDiff = item.pointsWon - item.pointsLost;
+        
+        let rankBadgeHtml = `<span class="text-slate-400 font-bold text-xs">${rank}</span>`;
+        if (rank === 1) {
+          rankBadgeHtml = `<span class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 inline-flex items-center justify-center font-black text-xs shadow-sm">1</span>`;
+        } else if (rank === 2) {
+          rankBadgeHtml = `<span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 inline-flex items-center justify-center font-black text-xs shadow-sm">2</span>`;
+        } else if (rank === 3) {
+          rankBadgeHtml = `<span class="w-6 h-6 rounded-full bg-slate-700/50 text-slate-300 border border-slate-600/40 inline-flex items-center justify-center font-bold text-xs">3</span>`;
+        }
+
+        const athleteNames = (item.team.members && item.team.members.length > 0)
+          ? item.team.members.map(m => m.name).join(' / ')
+          : item.team.name;
+
+        tableRowsHtml += `
+          <tr class="hover:bg-[#0e1b2f]/60 transition border-b border-[#121f33]/60">
+            <!-- RANK -->
+            <td class="py-2.5 px-2 text-center font-black text-xs">
+              ${rankBadgeHtml}
+            </td>
+
+            <!-- TEAM CODE -->
+            <td class="py-2.5 px-2">
+              <span class="px-2 py-0.5 rounded bg-[#101e33] text-slate-200 border border-[#1d3252] text-xs font-black tracking-wider">
+                ${item.team.code}
+              </span>
+            </td>
+
+            <!-- ATHLETE -->
+            <td class="py-2.5 px-2 font-bold text-white text-xs sm:text-sm max-w-[170px] truncate">
+              ${athleteNames}
+            </td>
+
+            <!-- TRẬN THẮNG (T: +1đ/trận thắng) -->
+            <td class="py-2.5 px-2 text-center font-mono font-black text-xs sm:text-sm text-emerald-400">
+              ${item.won}
+            </td>
+
+            <!-- HIỆU SỐ (HS) -->
+            <td class="py-2.5 px-2 text-center font-mono font-bold text-xs sm:text-sm ${ptDiff > 0 ? 'text-emerald-400' : ptDiff < 0 ? 'text-rose-400' : 'text-slate-400'}">
+              ${ptDiff > 0 ? '+' + ptDiff : ptDiff}
+            </td>
+
+            <!-- TỔNG ĐIỂM SĨ SỐ (Đ) -->
+            <td class="py-2.5 px-2 text-center font-mono font-bold text-xs sm:text-sm text-cyan-400">
+              ${item.pointsWon}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Render danh sách các trận vòng bảng thuộc bảng này
+    let matchesHtml = '';
+    const sortedGroupMatches = [...groupMatches].sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0));
+
+    let displayGroupMatches = sortedGroupMatches;
+    if (searchQuery) {
+      displayGroupMatches = sortedGroupMatches.filter(m => {
+        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
+        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+        const namesA = getPlayerNameLines(teamA, m.category);
+        const namesB = getPlayerNameLines(teamB, m.category);
+
+        const poolA = [teamA.code, teamA.name, namesA.line1, namesA.line2, (teamA.members || []).map(mem => mem.name).join(' ')].join(' ').toLowerCase();
+        const poolB = [teamB.code, teamB.name, namesB.line1, namesB.line2, (teamB.members || []).map(mem => mem.name).join(' ')].join(' ').toLowerCase();
+        const matchPool = [m.id, `m${m.matchNo}`, `#${m.matchNo}`, `sân ${m.court}`, m.time, poolA, poolB].join(' ').toLowerCase();
+
+        return matchPool.includes(searchQuery);
+      });
+    }
+
+    if (displayGroupMatches.length === 0) {
+      matchesHtml = `
+        <div class="py-4 text-center text-slate-500 italic text-xs">
+          Không có trận đấu nào khớp với từ khóa tìm kiếm
+        </div>
+      `;
+    } else {
+      displayGroupMatches.forEach(m => {
+        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
+        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+
+        const isLive = m.status === 'playing';
+        const isCompleted = m.status === 'completed';
+
+        const scores = m.scores || [{ a: 0, b: 0 }];
+        const s1 = scores[0] || { a: 0, b: 0 };
+
+        let statusBadgeText = '';
+        if (isLive) {
+          statusBadgeText = '<span class="text-rose-400 font-bold animate-pulse">[Đang đấu]</span>';
+        } else if (isCompleted) {
+          statusBadgeText = '<span class="text-slate-400">[Đã đấu]</span>';
+        } else {
+          statusBadgeText = '<span class="text-slate-500">[Sắp đấu]</span>';
+        }
+
+        let scoreBadge = isCompleted || isLive ? `[${s1.a} - ${s1.b}]` : `[ - ]`;
+
+        const namesA = getPlayerNameLines(teamA, m.category);
+        const namesB = getPlayerNameLines(teamB, m.category);
+
+        matchesHtml += `
+          <div class="flex items-center justify-between py-2 sm:py-2.5 px-2 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-xs gap-2" data-match-id="${m.id}">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 w-5/12 min-w-0">
+              <span class="text-slate-500 font-mono text-[11px] shrink-0">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
+              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamA.code}</span>
+              <div class="flex flex-col min-w-0 leading-tight">
+                <span class="font-semibold text-slate-300 text-[11px] truncate">${namesA.line1}</span>
+                ${namesA.line2 ? `<span class="font-semibold text-slate-300 text-[11px] truncate">${namesA.line2}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center justify-center shrink-0 text-center">
+              <div class="flex items-center gap-1 text-[10px] text-cyan-400 font-mono font-medium whitespace-nowrap">
+                <span>Sân ${m.court} ${m.time}</span>
+                ${statusBadgeText}
+              </div>
+              <div class="mt-0.5 px-2.5 py-0.5 rounded-md font-mono font-black text-xs score-pill-cyan tracking-wider">
+                ${scoreBadge}
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-1.5 sm:space-x-2 w-5/12 min-w-0 text-right">
+              <div class="flex flex-col min-w-0 leading-tight text-right">
+                <span class="font-semibold text-slate-300 text-[11px] truncate">${namesB.line1}</span>
+                ${namesB.line2 ? `<span class="font-semibold text-slate-300 text-[11px] truncate">${namesB.line2}</span>` : ''}
+              </div>
+              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamB.code}</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    const isAccordionOpen = searchQuery ? true : (groupAccordionState[accordionId] !== false);
+
+    html += `
+      <div class="space-y-5 sm:space-y-6">
+        
+        <!-- ELEMENT 1: BẢNG ĐIỂM XẾP HẠNG -->
+        <div class="bg-[#0c1524] rounded-2xl border ${isCyan ? 'border-cyan-500/30' : 'border-rose-500/30'} p-4 sm:p-5 shadow-2xl space-y-4">
+          <!-- Header Bảng: Tên Bảng + Đếm số đội & Số trận hoàn thành -->
+          <div class="flex items-center justify-between pb-3 border-b border-[#142338]">
+            <div class="flex items-center space-x-2 sm:space-x-2.5">
+              <span class="w-3 h-3 rounded-full ${isCyan ? 'bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.6)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'}"></span>
+              <h3 class="font-black text-sm sm:text-base text-white uppercase tracking-wider">
+                ${grp.name}
+              </h3>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${isCyan ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/50' : 'bg-rose-950/80 text-rose-300 border border-rose-800/50'}">
+                ${groupTeamsList.length} ĐỘI
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 font-mono font-medium">
+              <span class="${completedMatchesCount === sortedGroupMatches.length && sortedGroupMatches.length > 0 ? 'text-emerald-400 font-bold' : 'text-slate-300'}">${completedMatchesCount}/${sortedGroupMatches.length}</span> trận hoàn thành
+            </div>
+          </div>
+
+          <!-- Bảng Điểm Standings chuẩn theo giao diện mẫu -->
+          <div class="overflow-x-auto my-1">
+            <table class="w-full text-xs text-left whitespace-nowrap">
+              <thead class="text-slate-400 border-b border-[#142338] text-[11px] uppercase font-bold tracking-wider">
+                <tr>
+                  <th class="py-2.5 px-2 text-center w-10">RANK</th>
+                  <th class="py-2.5 px-2 w-14">TEAM</th>
+                  <th class="py-2.5 px-2">ATHLETE</th>
+                  <th class="py-2.5 px-2 text-center text-emerald-400" title="Trận thắng (+1 điểm/trận thắng)">T</th>
+                  <th class="py-2.5 px-2 text-center" title="Hiệu số điểm quả (Tổng điểm ghi được - bị mất)">HS</th>
+                  <th class="py-2.5 px-2 text-center text-cyan-400" title="Tổng điểm thắng sĩ số">Đ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#121f33]/40">
+                ${tableRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ELEMENT 2: LỊCH THI ĐẤU & TỶ SỐ (ELEMENT RIÊNG BIỆT) -->
+        <div class="bg-[#0c1524] rounded-2xl border ${isCyan ? 'border-cyan-500/30' : 'border-rose-500/30'} p-4 sm:p-5 shadow-2xl space-y-3">
+          <button type="button" class="group-matches-toggle w-full flex items-center justify-between text-xs text-slate-200 hover:text-cyan-400 font-bold uppercase tracking-wider transition py-1" data-accordion="${accordionId}">
+            <div class="flex items-center space-x-2 sm:space-x-2.5">
+              <i class="fa-solid fa-calendar-days ${isCyan ? 'text-cyan-400' : 'text-rose-400'}"></i>
+              <span>LỊCH THI ĐẤU & TỶ SỐ (${sortedGroupMatches.length} TRẬN)</span>
+            </div>
+            <i class="fa-solid fa-chevron-up ${isCyan ? 'text-cyan-400' : 'text-rose-400'} text-xs transition-transform transform ${isAccordionOpen ? '' : 'rotate-180'}"></i>
+          </button>
+
+          <div class="group-matches-content space-y-1 pt-2 border-t border-[#142338] ${isAccordionOpen ? '' : 'hidden'}" id="group-matches-${accordionId}">
+            ${matchesHtml}
+          </div>
+        </div>
+
+      </div>
+    `;
+  });
+
+  html += '</div>';
+
+  container.innerHTML = html;
+
+  // Gắn sự kiện đóng mở accordion
+  const toggleBtns = container.querySelectorAll('.group-matches-toggle');
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const accId = btn.dataset.accordion;
+      const content = document.getElementById(`group-matches-${accId}`);
+      const icon = btn.querySelector('i.fa-chevron-up');
+      if (content && icon) {
+        const isHidden = content.classList.contains('hidden');
+        if (isHidden) {
+          content.classList.remove('hidden');
+          icon.classList.remove('rotate-180');
+          groupAccordionState[accId] = true;
+        } else {
+          content.classList.add('hidden');
+          icon.classList.add('rotate-180');
+          groupAccordionState[accId] = false;
+        }
+      }
+    });
+  });
 }
 
 /**
- * Thuật toán tính BXH Vòng Bảng:
- * 1. Điểm thắng trận
- * 2. Hiệu số Set
- * 3. Hiệu số Điểm
+ * Thuật toán tính BXH Vòng Bảng (Có lọc theo Category)
  */
-function calculateGroupStandings(groupKey) {
+function calculateGroupStandings(groupKey, category = null) {
   const teams = tournamentData.teams || {};
   const matches = Object.values(tournamentData.matches || {});
   const settings = tournamentData.settings || {};
@@ -616,6 +703,8 @@ function calculateGroupStandings(groupKey) {
   // Duyệt các trận vòng bảng đã hoàn thành
   matches.forEach(m => {
     if (m.stage === 'group' && m.group === groupKey && m.status === 'completed' && m.winner) {
+      if (category && m.category && m.category !== category) return;
+
       const sA = stats[m.teamA];
       const sB = stats[m.teamB];
       if (!sA || !sB) return;
@@ -648,187 +737,691 @@ function calculateGroupStandings(groupKey) {
     }
   });
 
-  // Sắp xếp
+  // Sắp xếp: Số trận thắng T (+1đ/trận) -> Hiệu số HS -> Tổng điểm thắng sĩ số Đ
   const sorted = Object.values(stats).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    const diffSetsA = a.setsWon - a.setsLost;
-    const diffSetsB = b.setsWon - b.setsLost;
-    if (diffSetsB !== diffSetsA) return diffSetsB - diffSetsA;
+    if (b.won !== a.won) return b.won - a.won;
     const diffPtsA = a.pointsWon - a.pointsLost;
     const diffPtsB = b.pointsWon - b.pointsLost;
-    return diffPtsB - diffPtsA;
+    if (diffPtsB !== diffPtsA) return diffPtsB - diffPtsA;
+    return b.pointsWon - a.pointsWon;
   });
 
   return sorted;
 }
 
-function renderStandingsTable(tbodyId, standingsList, groupKey) {
-  const tbody = document.getElementById(tbodyId);
-  if (!tbody) return;
+/**
+ * =========================================================================
+ * 2. RENDER LỊCH THI ĐẤU & KẾT QUẢ (SCHEDULE LIST THEO SÂN & THỜI GIAN)
+ * =========================================================================
+ */
+function renderScheduleList() {
+  const container = document.getElementById('schedule-list-container');
+  if (!container) return;
 
-  let html = '';
-  standingsList.forEach((item, index) => {
-    const rank = index + 1;
-    const isTop2 = rank <= 2;
-    const setDiff = item.setsWon - item.setsLost;
-    const ptDiff = item.pointsWon - item.pointsLost;
+  const rawMatches = Object.values(tournamentData.matches || {});
+  const matches = rawMatches.map(m => window.sanitizeMatch ? window.sanitizeMatch(m) : m);
+  
+  // Sắp xếp các trận theo số thứ tự matchNo hoặc thời gian
+  const sortedMatches = [...matches].sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0));
 
-    html += `
-      <tr class="${isTop2 ? (groupKey === 'X' ? 'bg-blue-50/60' : 'bg-rose-50/60') : 'hover:bg-slate-50'} transition">
-        <td class="py-3 px-3 text-center">
-          <span class="w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black shadow-xs ${
-            rank === 1 ? 'bg-amber-400 text-slate-900 ring-2 ring-amber-300' :
-            rank === 2 ? 'bg-slate-300 text-slate-900 font-bold' :
-            'bg-slate-100 text-slate-500 font-medium'
-          }">
-            ${rank}
-          </span>
-        </td>
-        <td class="py-3 px-3">
-          <div class="font-bold text-slate-800 flex items-center gap-1.5">
-            <span>${item.team.name}</span>
-            ${isTop2 ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">Vào BK</span>' : ''}
-          </div>
-          <div class="text-[11px] text-slate-500 truncate max-w-[200px] font-medium">
-            ${(item.team.members || []).map(m => m.name).join(' - ')}
-          </div>
-        </td>
-        <td class="py-3 px-2 text-center text-slate-600 font-semibold">${item.played}</td>
-        <td class="py-3 px-2 text-center font-bold text-emerald-600">${item.won}</td>
-        <td class="py-3 px-2 text-center font-medium text-rose-500">${item.lost}</td>
-        <td class="py-3 px-2 text-center font-mono font-semibold ${setDiff > 0 ? 'text-emerald-600' : setDiff < 0 ? 'text-rose-500' : 'text-slate-500'}">
-          ${item.setsWon}/${item.setsLost}
-        </td>
-        <td class="py-3 px-2 text-center font-mono font-semibold ${ptDiff > 0 ? 'text-emerald-600' : ptDiff < 0 ? 'text-rose-500' : 'text-slate-500'}">
-          ${ptDiff > 0 ? '+' + ptDiff : ptDiff}
-        </td>
-        <td class="py-3 px-3 text-center font-black text-sm ${groupKey === 'X' ? 'text-blue-600' : 'text-rose-600'}">
-          ${item.points}
-        </td>
-      </tr>
-    `;
+  // Áp dụng bộ lọc và tìm kiếm
+  const filtered = sortedMatches.filter(m => {
+    let passFilter = true;
+    if (currentFilter === 'court-1') passFilter = Number(m.court) === 1;
+    else if (currentFilter === 'court-2') passFilter = Number(m.court) === 2;
+    else if (currentFilter === 'court-3') passFilter = Number(m.court) === 3;
+    else if (currentFilter === 'knockout') passFilter = m.stage !== 'group';
+    if (!passFilter) return false;
+
+    if (searchQuery) {
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+      const matchText = [
+        m.id,
+        m.code || '',
+        teamA.name,
+        teamA.membersText,
+        teamA.code,
+        teamB.name,
+        teamB.membersText,
+        teamB.code,
+        m.time
+      ].join(' ').toLowerCase();
+
+      return matchText.includes(searchQuery);
+    }
+
+    return true;
   });
 
-  tbody.innerHTML = html;
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="bg-[#0c1524] rounded-2xl p-10 text-center text-slate-400 border border-[#16263f]">
+        <i class="fa-solid fa-magnifying-glass text-3xl mb-3 text-slate-500"></i>
+        <p class="text-sm font-semibold text-slate-300">Không tìm thấy trận đấu phù hợp</p>
+        <p class="text-xs text-slate-500 mt-1">Thử đổi từ khóa tìm kiếm hoặc chọn bộ lọc "Tất cả"</p>
+      </div>
+    `;
+    return;
+  }
+
+  const isCardMode = scheduleViewMode === 'cards';
+
+  let html = '';
+  if (isCardMode) {
+    html = '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7 p-1 sm:p-2">';
+    filtered.forEach(m => {
+      html += renderRedesignedMatchCard(m);
+    });
+    html += '</div>';
+  } else {
+    filtered.forEach(m => {
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+
+      const isLive = m.status === 'playing';
+      const isCompleted = m.status === 'completed';
+
+      const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
+      const setsWon = m.setsWon || { a: 0, b: 0 };
+
+      const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
+        isGroup: m.stage === 'group',
+        label: m.stage === 'group' ? "1 set 21" : "3 set 15"
+      };
+
+      const s1 = scores[0] || { a: 0, b: 0 };
+      const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
+
+      const catBadge = m.category === 'mixed'
+        ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-pink-950/60 text-pink-300 border border-pink-500/30 font-bold">Nam Nữ</span>'
+        : '<span class="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 font-bold">Đôi Nam</span>';
+
+      html += `
+        <div class="bg-[#0c1524] rounded-2xl border ${isLive ? 'border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_15px_rgba(0,229,255,0.15)]' : 'border-[#16263f]'} p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-cyan-500/30" data-match-id="${m.id}">
+          
+          <!-- Cột 1: Thông tin Trận, Giờ, Sân -->
+          <div class="flex items-center space-x-3 sm:w-1/4">
+            <div class="w-11 h-11 rounded-xl bg-[#091526] text-cyan-400 border border-cyan-500/30 flex flex-col items-center justify-center font-black shadow-inner">
+              <span class="text-[9px] uppercase font-bold tracking-tight opacity-75">Sân</span>
+              <span class="text-base leading-none">${m.court}</span>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white flex items-center gap-1.5">
+                <span>${m.time} • Trận ${m.id}</span>
+                ${catBadge}
+              </div>
+              <div class="text-[11px] text-slate-400 font-medium">${m.label || m.note || 'Vòng Bảng'}</div>
+            </div>
+          </div>
+
+          <!-- Cột 2: Cặp đấu & Tỷ số Cyberpunk -->
+          <div class="flex-grow flex items-center justify-between sm:justify-center gap-3 sm:gap-6">
+            <!-- Đội A -->
+            <div class="text-right sm:w-5/12 ${m.winner === m.teamA ? 'font-bold text-cyan-300' : 'text-slate-200'}">
+              <div class="text-xs sm:text-sm font-extrabold flex items-center justify-end gap-1.5">
+                <span class="truncate max-w-[140px] sm:max-w-[170px] text-white">${teamA.name}</span>
+                <span class="w-6 h-5 rounded bg-[#081f33] text-cyan-400 border border-cyan-500/40 text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
+                  ${teamA.code}
+                </span>
+              </div>
+              <div class="text-[10px] text-[#7d93b0] truncate max-w-[190px] ml-auto font-medium">${teamA.membersText}</div>
+            </div>
+
+            <!-- Tỷ số Trung tâm [A - B] -->
+            <div class="flex flex-col items-center justify-center min-w-[68px] sm:min-w-[76px] flex-shrink-0">
+              <div class="px-2 py-0.5 rounded-lg font-mono font-bold text-xs whitespace-nowrap score-pill-cyan ${
+                isLive ? 'animate-pulse' : ''
+              }">
+                ${formatInfo.isGroup ? `[${s1.a} - ${s1.b}]` : `[${setsWon.a} - ${setsWon.b}]`}
+              </div>
+              ${isLive ? '<span class="live-indicator-red mt-1"></span>' : ''}
+            </div>
+
+            <!-- Đội B -->
+            <div class="text-left sm:w-5/12 ${m.winner === m.teamB ? 'font-bold text-cyan-300' : 'text-slate-200'}">
+              <div class="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
+                <span class="w-6 h-5 rounded bg-[#081f33] text-cyan-400 border border-cyan-500/40 text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
+                  ${teamB.code}
+                </span>
+                <span class="truncate max-w-[140px] sm:max-w-[170px] text-white">${teamB.name}</span>
+              </div>
+              <div class="text-[10px] text-[#7d93b0] truncate max-w-[190px] font-medium">${teamB.membersText}</div>
+            </div>
+          </div>
+
+          <!-- Cột 3: Chi tiết các set & Trạng thái -->
+          <div class="sm:w-1/4 flex sm:flex-col sm:items-end justify-between items-center text-xs">
+            <div class="font-mono text-slate-400">
+              ${
+                formatInfo.isGroup
+                  ? `<span class="text-[11px] text-slate-500 font-sans italic">1 set 21</span>`
+                  : playedSets.length > 0
+                  ? `<div class="flex items-center gap-1">${playedSets.map(s => `<span class="bg-[#091120] px-1.5 py-0.5 rounded text-[10px] font-semibold border border-[#16263f] text-cyan-300">${s.a}-${s.b}</span>`).join('')}</div>`
+                  : `<span class="text-[11px] text-slate-500 font-sans italic">3 set 15</span>`
+              }
+            </div>
+            <div class="mt-1">
+              ${isLive 
+                ? '<span class="text-rose-400 font-bold text-xs flex items-center gap-1.5"><span class="live-indicator-red"></span>Đang đấu</span>'
+                : isCompleted
+                ? '<span class="text-emerald-400 font-bold text-xs flex items-center gap-1"><i class="fa-solid fa-check"></i> Đã xong</span>'
+                : '<span class="text-slate-500 font-medium text-xs">Sắp diễn ra</span>'
+              }
+            </div>
+          </div>
+
+        </div>
+      `;
+    });
+  }
+
+  container.innerHTML = html;
 }
 
 /**
- * 4. RENDER NHÁNH ĐẤU VÒNG CHUNG KẾT (BRACKET TRỰC QUAN)
+ * =========================================================================
+ * 3. RENDER 3 SÂN THI ĐẤU (LIVE COURTS DASHBOARD)
+ * =========================================================================
  */
+function renderLiveCourts() {
+  const container = document.getElementById('courts-container');
+  if (!container) return;
+
+  const matches = Object.values(tournamentData.matches || {});
+  const courts = [1, 2, 3];
+
+  let html = '';
+
+  courts.forEach(courtNumber => {
+    let activeMatch = matches.find(m => Number(m.court) === courtNumber && m.status === 'playing');
+    
+    if (!activeMatch) {
+      activeMatch = matches.find(m => Number(m.court) === courtNumber && m.status === 'scheduled');
+    }
+
+    if (!activeMatch) {
+      const finished = matches.filter(m => Number(m.court) === courtNumber && m.status === 'completed');
+      if (finished.length > 0) {
+        activeMatch = finished[finished.length - 1];
+      }
+    }
+
+    if (!activeMatch) {
+      html += `
+        <div class="court-card bg-[#0c1524] rounded-3xl border border-[#16263f] p-5 sm:p-6 flex flex-col justify-between">
+          <div class="flex items-center justify-between pb-3 border-b border-[#142338]">
+            <span class="font-extrabold text-base text-white">SÂN ${courtNumber}</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-[#091120] text-slate-500 font-medium">Trống</span>
+          </div>
+          <div class="py-10 text-center text-slate-500 text-sm">
+            <i class="fa-solid fa-moon text-3xl mb-2 text-slate-600"></i>
+            <p>Hiện không có trận đấu</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Các trận tiếp theo trên sân này (tối đa 2 trận kế tiếp)
+    const upcomingOnCourt = matches.filter(m => Number(m.court) === courtNumber && m.id !== activeMatch.id && m.status === 'scheduled').slice(0, 2);
+
+    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA, activeMatch.category);
+    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB, activeMatch.category);
+
+    const isLive = activeMatch.status === 'playing';
+    const isCompleted = activeMatch.status === 'completed';
+
+    const formatInfo = window.getMatchFormat ? window.getMatchFormat(activeMatch, tournamentData.settings) : {
+      isGroup: activeMatch.stage === 'group',
+      label: activeMatch.stage === 'group' ? "1 set 21" : "3 set 15"
+    };
+
+    let statusBadge = '';
+    if (isLive) {
+      statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-950/80 text-rose-400 border border-rose-500/40 shadow-sm animate-pulse">
+        <span class="live-indicator-red"></span> ĐANG ĐẤU
+      </span>`;
+    } else if (isCompleted) {
+      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
+        <i class="fa-solid fa-check mr-1"></i> ĐÃ XONG
+      </span>`;
+    } else {
+      statusBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#091120] text-amber-300 border border-amber-500/30">
+        <i class="fa-regular fa-clock mr-1"></i> ${activeMatch.time}
+      </span>`;
+    }
+
+    const scores = activeMatch.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
+    const setsWon = activeMatch.setsWon || { a: 0, b: 0 };
+
+    let scoreText = '';
+    let subDetailText = '';
+
+    if (formatInfo.isGroup) {
+      const s1 = scores[0] || { a: 0, b: 0 };
+      scoreText = `[${s1.a} - ${s1.b}]`;
+      subDetailText = `Thể thức: 1 set chạm 21`;
+    } else {
+      if (isLive) {
+        const setIdx = Math.min((setsWon.a + setsWon.b), 2);
+        const curScore = scores[setIdx] || { a: 0, b: 0 };
+        scoreText = `[${curScore.a} - ${curScore.b}]`;
+        subDetailText = `Đang đánh Set ${setIdx + 1} (Tỷ số set: ${setsWon.a}-${setsWon.b})`;
+      } else {
+        scoreText = `[${setsWon.a} - ${setsWon.b}]`;
+        const played = scores.filter(s => s.a > 0 || s.b > 0).map(s => `${s.a}-${s.b}`).join(', ');
+        subDetailText = played ? `Các set: ${played}` : `Thể thức: 3 set 15`;
+      }
+    }
+
+    html += `
+      <div class="court-card bg-[#0c1524] rounded-3xl border ${isLive ? 'border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_20px_rgba(0,229,255,0.2)]' : 'border-[#16263f]'} p-5 sm:p-6 flex flex-col justify-between" data-match-id="${activeMatch.id}">
+        
+        <!-- Header Sân -->
+        <div class="flex items-center justify-between pb-3 border-b border-[#142338]">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-[#081e33] border border-cyan-500/40 text-cyan-400 font-extrabold text-xs flex items-center justify-center shadow-xs">
+              ${courtNumber}
+            </span>
+            <div>
+              <span class="font-extrabold text-sm text-white">SÂN ${courtNumber}</span>
+              <span class="text-[11px] text-slate-400 ml-1.5 font-medium">Trận ${activeMatch.id}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#091120] text-cyan-300 border border-[#16263f]">
+              ${formatInfo.label}
+            </span>
+            ${statusBadge}
+          </div>
+        </div>
+
+        <!-- BẢNG ĐIỂM TRUNG TÂM -->
+        <div class="my-3 py-4 px-4 sm:px-5 rounded-2xl bg-[#08111e] border border-[#16263f] flex items-center justify-between shadow-inner">
+          <!-- Đội A -->
+          <div class="w-5/12 text-left">
+            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
+              ${teamA.code || teamA.id}
+            </div>
+            <div class="text-xs text-[#7d93b0] font-medium truncate" title="${teamA.name}">
+              ${teamA.name}
+            </div>
+          </div>
+
+          <!-- Tỷ số [15 - 7] -->
+          <div class="w-2/12 flex flex-col items-center justify-center text-center">
+            <span class="px-2 py-0.5 rounded bg-[#0c182a] text-cyan-400 text-[11px] font-mono font-bold border border-cyan-800/50 mb-1">
+              ${activeMatch.time}
+            </span>
+            <div class="text-xl sm:text-2xl font-mono font-black text-cyan-300 tracking-wider whitespace-nowrap score-pill-cyan px-2.5 py-0.5 rounded-lg">
+              ${scoreText}
+            </div>
+          </div>
+
+          <!-- Đội B -->
+          <div class="w-5/12 text-right">
+            <div class="text-xl sm:text-2xl font-black text-white tracking-wide">
+              ${teamB.code || teamB.id}
+            </div>
+            <div class="text-xs text-[#7d93b0] font-medium truncate" title="${teamB.name}">
+              ${teamB.name}
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Card -->
+        <div class="pt-2.5 border-t border-[#142338] flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span class="text-[11px] text-cyan-400/80 font-mono">
+            ${subDetailText}
+          </span>
+          <span class="text-slate-400 font-semibold truncate max-w-[150px] text-right">
+            ${activeMatch.label || activeMatch.note || 'Vòng Bảng'}
+          </span>
+        </div>
+
+        <!-- Các trận sắp tới trên sân này -->
+        ${upcomingOnCourt.length > 0 ? `
+          <div class="mt-3 pt-2.5 border-t border-[#142338]/80 space-y-1.5">
+            <div class="text-[10px] uppercase font-bold text-cyan-400/80 tracking-wider flex items-center gap-1">
+              <i class="fa-regular fa-clock text-[10px]"></i> Các trận tiếp theo trên Sân ${courtNumber}:
+            </div>
+            ${upcomingOnCourt.map(u => `
+              <div class="flex items-center justify-between text-[11px] bg-[#091120] px-2.5 py-1.5 rounded-lg border border-[#16263f]">
+                <span class="font-mono text-cyan-400 font-bold">${u.time} • Trận ${u.id}</span>
+                <span class="text-white font-semibold">${getTeamDisplay(u.teamA, u.placeholderA, u.category).code || getTeamDisplay(u.teamA, u.placeholderA, u.category).name} vs ${getTeamDisplay(u.teamB, u.placeholderB, u.category).code || getTeamDisplay(u.teamB, u.placeholderB, u.category).name}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/**
+ * =========================================================================
+ * 4. RENDER NHÁNH ĐẤU VÒNG CHUNG KẾT (BRACKET ĐÔI NAM NỮ & ĐÔI NAM)
+ * =========================================================================
+ */
+function getKnockoutSubMatchPair(m, teamId, placeholder) {
+  if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
+    return placeholder || "Chưa xác định";
+  }
+  const team = tournamentData.teams[teamId];
+  const members = team.members || [];
+  const mA = members.find(mem => mem.role === 'A') || members[0] || { name: "" };
+  const ma = members.find(mem => mem.role === 'a') || members[1] || { name: "" };
+  const mb = members.find(mem => mem.role === 'b') || members[2] || { name: "" };
+
+  const subType = m ? (m.subType || "") : "";
+  const matchCode = m ? (m.code || "") : "";
+
+  if (subType === 'Ab' || matchCode.includes('Ab')) {
+    if (mA.name && mb.name) return `${mA.name} / ${mb.name}`;
+  } else if (subType === 'ab' || matchCode.includes('ab')) {
+    if (ma.name && mb.name) return `${ma.name} / ${mb.name}`;
+  } else if (subType === 'Aa' || matchCode.includes('Aa') || m?.category === 'men') {
+    if (team.menName) return team.menName;
+    if (mA.name && ma.name) return `${mA.name} - ${ma.name}`;
+  }
+
+  return team.name || placeholder;
+}
+
 function renderBracket() {
   const container = document.getElementById('bracket-container');
   if (!container) return;
 
   const matches = tournamentData.matches || {};
-  const m21 = matches['M21']; // Bán kết 1
-  const m22 = matches['M22']; // Bán kết 2
-  const m23 = matches['M23']; // Tranh 3-4
-  const m24 = matches['M24']; // Chung kết
+
+  // Trận Đồng Đội 1: Bán kết 1 (Nhất X vs Nhì Đ) -> M41 (Ab), M43 (ab), M45 (Aa)
+  const bk1TieMatches = ['M41', 'M43', 'M45'];
+  
+  // Trận Đồng Đội 2: Bán kết 2 (Nhất Đ vs Nhì X) -> M42 (Ab), M44 (ab), M46 (Aa)
+  const bk2TieMatches = ['M42', 'M44', 'M46'];
+
+  // Trận Đồng Đội 3: Chung kết (Thắng BK1 vs Thắng BK2) -> M47 (Ab), M49 (ab), M51 (Aa)
+  const finalTieMatches = ['M47', 'M49', 'M51'];
+
+  // Trận Đồng Đội 4: Tranh Hạng Ba (Thua BK1 vs Thua BK2) -> M48 (Ab), M50 (ab), M52 (Aa)
+  const thirdTieMatches = ['M48', 'M50', 'M52'];
+
+  const getTieWinner = (matchesList) => {
+    const subMatches = matchesList.map(id => matches[id]).filter(Boolean);
+    if (subMatches.length === 0) return null;
+    let teamAWins = 0;
+    let teamBWins = 0;
+    let teamA = subMatches[0].teamA;
+    let teamB = subMatches[0].teamB;
+    subMatches.forEach(m => {
+      if (m.status === 'completed' && m.winner) {
+        if (m.winner === teamA) teamAWins++;
+        else if (m.winner === teamB) teamBWins++;
+      }
+    });
+    if (teamAWins >= 2) return { winnerId: teamA, loserId: teamB, score: `${teamAWins}-${teamBWins}` };
+    if (teamBWins >= 2) return { winnerId: teamB, loserId: teamA, score: `${teamBWins}-${teamAWins}` };
+    return null;
+  };
+
+  const finalRes = getTieWinner(finalTieMatches);
+  const thirdRes = getTieWinner(thirdTieMatches);
+
+  let championHtml = '';
+  if (finalRes && finalRes.winnerId && tournamentData.teams && tournamentData.teams[finalRes.winnerId]) {
+    const champTeam = tournamentData.teams[finalRes.winnerId];
+    const runnerTeam = tournamentData.teams[finalRes.loserId];
+    const thirdTeam = thirdRes && thirdRes.winnerId ? tournamentData.teams[thirdRes.winnerId] : null;
+
+    championHtml = `
+      <div class="relative overflow-hidden bg-gradient-to-r from-amber-950/90 via-slate-900 to-yellow-950/90 rounded-3xl border-2 border-amber-400/80 p-5 sm:p-6 shadow-[0_0_35px_rgba(251,191,36,0.3)] space-y-4 mb-6">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-xl font-black shadow-lg">
+              <i class="fa-solid fa-trophy animate-bounce"></i>
+            </div>
+            <div>
+              <h3 class="text-base sm:text-lg font-black text-amber-300 uppercase tracking-wider">VINH DANH NHÀ VÔ ĐỊCH GIẢI ĐẤU 2026</h3>
+              <p class="text-xs text-amber-200/70">Chúc mừng các đội thi đấu xuất sắc nhất vòng Knockout!</p>
+            </div>
+          </div>
+          <span class="hidden sm:inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono text-xs font-bold">🏆 CƠ CẤU GIẢI THƯỞNG</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 🥇 VÔ ĐỊCH -->
+          <div class="bg-amber-950/60 border border-amber-400/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+            <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥇</span>
+            <div class="min-w-0">
+              <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest block">NHÀ VÔ ĐỊCH</span>
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-mono font-black text-xs shrink-0">${champTeam.code}</span>
+                <span class="font-extrabold text-white text-sm truncate">${champTeam.name}</span>
+              </div>
+              <p class="text-[10px] text-amber-200/80 truncate mt-0.5">${(champTeam.members || []).map(m => m.name).join(' • ')}</p>
+            </div>
+          </div>
+
+          <!-- 🥈 Á QUÂN -->
+          ${runnerTeam ? `
+            <div class="bg-slate-900/80 border border-slate-600/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+              <span class="w-10 h-10 rounded-xl bg-slate-300 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥈</span>
+              <div class="min-w-0">
+                <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest block">Á QUÂN (HẠNG 2)</span>
+                <div class="flex items-center gap-1.5 truncate">
+                  <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono font-black text-xs shrink-0">${runnerTeam.code}</span>
+                  <span class="font-extrabold text-white text-sm truncate">${runnerTeam.name}</span>
+                </div>
+                <p class="text-[10px] text-slate-400 truncate mt-0.5">${(runnerTeam.members || []).map(m => m.name).join(' • ')}</p>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- 🥉 HẠNG BA -->
+          ${thirdTeam ? `
+            <div class="bg-amber-950/30 border border-amber-700/50 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+              <span class="w-10 h-10 rounded-xl bg-amber-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥉</span>
+              <div class="min-w-0">
+                <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest block">HẠNG BA (HẠNG 3)</span>
+                <div class="flex items-center gap-1.5 truncate">
+                  <span class="px-1.5 py-0.5 rounded bg-amber-900 text-amber-300 font-mono font-black text-xs shrink-0">${thirdTeam.code}</span>
+                  <span class="font-extrabold text-white text-sm truncate">${thirdTeam.name}</span>
+                </div>
+                <p class="text-[10px] text-amber-200/60 truncate mt-0.5">${(thirdTeam.members || []).map(m => m.name).join(' • ')}</p>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  const renderTeamTieCard = (tieTitle, matchesList, placeholderA, placeholderB, type = 'normal') => {
+    const subMatches = matchesList.map(id => matches[id]).filter(Boolean);
+    if (subMatches.length === 0) return '';
+
+    const firstM = subMatches[0];
+    const teamA = getTeamDisplay(firstM.teamA, placeholderA);
+    const teamB = getTeamDisplay(firstM.teamB, placeholderB);
+
+    let teamAWins = 0;
+    let teamBWins = 0;
+    subMatches.forEach(m => {
+      if (m.status === 'completed' && m.winner) {
+        if (m.winner === m.teamA) teamAWins++;
+        else if (m.winner === m.teamB) teamBWins++;
+      }
+    });
+
+    const isCompleted = subMatches.length > 0 && subMatches.every(m => m.status === 'completed');
+    const isPlaying = subMatches.some(m => m.status === 'playing');
+    const isTieFinished = (teamAWins >= 2 || teamBWins >= 2);
+
+    const isFinal = type === 'final';
+    const isThird = type === 'third';
+
+    let subMatchesHtml = '';
+    subMatches.forEach(m => {
+      const isMCompleted = m.status === 'completed';
+      const isMPlaying = m.status === 'playing';
+      const scores = m.scores || [{ a: 0, b: 0 }];
+      const s1 = scores[0] || { a: 0, b: 0 };
+
+      const pairA = getKnockoutSubMatchPair(m, m.teamA, placeholderA);
+      const pairB = getKnockoutSubMatchPair(m, m.teamB, placeholderB);
+
+      const matchNo = m.matchNo || (m.id ? m.id.replace(/\D/g, '') : '');
+      const subTypeLabel = m.subType || (m.code ? m.code.split('-')[1] : '');
+      const categoryText = m.category === 'mixed' ? (subTypeLabel === 'Ab' ? 'Nam A + Nữ b' : 'Nam a + Nữ b') : 'Đôi Nam (A+a)';
+
+      const aWin = isMCompleted && s1.a > s1.b;
+      const bWin = isMCompleted && s1.b > s1.a;
+
+      subMatchesHtml += `
+        <div class="p-2 rounded-xl bg-[#08101c] border ${isMPlaying ? 'border-cyan-400 ring-1 ring-cyan-400/40 bg-cyan-950/20' : 'border-[#142338]'} space-y-1 transition hover:border-[#1d3354]">
+          <div class="flex items-center justify-between text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <span class="px-1.5 py-0.2 rounded bg-[#0f1d32] text-cyan-300 font-mono font-black border border-[#1d355a] text-[10px]">#${matchNo} ${subTypeLabel}</span>
+              <span class="text-slate-400 font-bold">${categoryText}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="text-slate-400 font-mono text-[10px]">Sân ${m.court} • ${m.time}</span>
+              ${isMPlaying ? '<span class="text-rose-400 font-bold animate-pulse text-[9px] px-1 bg-rose-950 rounded">LIVE</span>' : ''}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-7 items-center gap-1 text-xs pt-0.5">
+            <div class="col-span-3 truncate text-right font-medium ${aWin ? 'text-cyan-300 font-extrabold' : 'text-slate-300'}" title="${pairA}">
+              ${pairA}
+            </div>
+            <div class="col-span-1 text-center font-mono font-black text-xs px-1 py-0.5 rounded bg-[#0c182a] border border-[#182a47]">
+              <span class="${aWin ? 'text-cyan-300 font-black' : 'text-slate-400'}">${isMCompleted || isMPlaying ? s1.a : '-'}</span>
+              <span class="text-slate-600 px-0.5">:</span>
+              <span class="${bWin ? 'text-cyan-300 font-black' : 'text-slate-400'}">${isMCompleted || isMPlaying ? s1.b : '-'}</span>
+            </div>
+            <div class="col-span-3 truncate text-left font-medium ${bWin ? 'text-cyan-300 font-extrabold' : 'text-slate-300'}" title="${pairB}">
+              ${pairB}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    const namesA = getPlayerNameLines(teamA);
+    const namesB = getPlayerNameLines(teamB);
+    const aTieWin = teamAWins >= 2;
+    const bTieWin = teamBWins >= 2;
+
+    return `
+      <div class="bg-[#0c1524] rounded-2xl border ${isFinal ? 'border-amber-400/80 shadow-[0_0_25px_rgba(251,191,36,0.2)] ring-1 ring-amber-400/40' : isThird ? 'border-amber-600/50 shadow-md' : isPlaying ? 'border-cyan-400 ring-2 ring-cyan-500/20' : 'border-[#16263f]'} p-4 space-y-3 shadow-xl transition hover:border-cyan-500/50">
+        
+        <!-- Card Header -->
+        <div class="flex items-center justify-between pb-2 border-b border-[#142338] text-xs font-black ${isFinal ? 'text-amber-400' : isThird ? 'text-amber-500' : 'text-cyan-400'} uppercase tracking-wider">
+          <span class="flex items-center gap-1.5">
+            ${isFinal ? '<i class="fa-solid fa-crown text-amber-400 text-sm"></i>' : isThird ? '<i class="fa-solid fa-medal text-amber-500 text-sm"></i>' : '<i class="fa-solid fa-trophy text-cyan-400"></i>'}
+            ${tieTitle}
+          </span>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${isTieFinished ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : isPlaying ? 'bg-cyan-950 text-cyan-400 border border-cyan-800 animate-pulse' : 'bg-slate-900 text-slate-400'}">${isTieFinished ? 'ĐÃ XONG' : isPlaying ? 'ĐANG THI ĐẤU' : 'SẮP ĐẤU'}</span>
+        </div>
+
+        <!-- Tên 2 Đội & Tỷ số Đồng Đội -->
+        <div class="grid grid-cols-5 items-center gap-2 bg-[#08101c] p-3 rounded-xl border border-[#142338]">
+          <!-- Đội A -->
+          <div class="col-span-2 space-y-1">
+            <div class="flex items-center space-x-1.5">
+              <span class="px-1.5 py-0.5 rounded ${aTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-xs font-mono shrink-0">${teamA.code}</span>
+              <span class="font-extrabold ${aTieWin ? 'text-cyan-300 font-black' : 'text-white'} text-xs truncate">${teamA.name}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight truncate">
+              ${namesA.line1} ${namesA.line2 ? `• ${namesA.line2}` : ''}
+            </div>
+          </div>
+
+          <!-- Tỷ số đồng đội trung tâm -->
+          <div class="col-span-1 flex flex-col items-center justify-center text-center">
+            <div class="text-base font-mono font-black ${isTieFinished ? 'text-amber-400 bg-amber-950/80 border-amber-500/60' : 'text-cyan-300 bg-[#0c1a2e] border-cyan-500/40'} px-2.5 py-0.5 rounded-lg border shadow-sm whitespace-nowrap">
+              ${teamAWins} - ${teamBWins}
+            </div>
+            <span class="text-[9px] text-slate-400 uppercase font-bold mt-1">Đồng đội</span>
+          </div>
+
+          <!-- Đội B -->
+          <div class="col-span-2 space-y-1 text-right">
+            <div class="flex items-center justify-end space-x-1.5">
+              <span class="font-extrabold ${bTieWin ? 'text-cyan-300 font-black' : 'text-white'} text-xs truncate">${teamB.name}</span>
+              <span class="px-1.5 py-0.5 rounded ${bTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-xs font-mono shrink-0">${teamB.code}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight text-right truncate">
+              ${namesB.line1} ${namesB.line2 ? `• ${namesB.line2}` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Danh sách 3 trận thi đấu nhỏ -->
+        <div class="space-y-1.5 pt-1">
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider px-1 flex items-center justify-between">
+            <span>Các trận con (3 Trận):</span>
+            <span class="text-cyan-400 text-[10px]">Chạm 15 điểm</span>
+          </div>
+          ${subMatchesHtml}
+        </div>
+
+      </div>
+    `;
+  };
 
   container.innerHTML = `
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-[#0c1524] rounded-3xl border border-[#16263f] p-4 sm:p-6 shadow-2xl space-y-6">
       
-      <!-- Cột 1: VÒNG BÁN KẾT -->
-      <div class="space-y-4">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-200">
-          <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-bolt text-blue-600"></i> Vòng Bán Kết (11h10)
-          </h3>
-          <span class="text-xs text-slate-400 font-medium">Top 1 vs Top 2 chéo bảng</span>
+      <!-- Header Thể Thức Đồng Đội -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#142338]">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <span class="w-3 h-7 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(0,229,255,0.6)] inline-block shrink-0"></span>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">SƠ ĐỒ NHÁNH ĐẤU • VÒNG CHUNG KẾT ĐỒNG ĐỘI</h3>
+            <p class="text-xs text-slate-400">4 Đội xuất sắc nhất • Mỗi cặp đấu 3 trận con (Ab: Nam A+Nữ b, ab: Nam a+Nữ b, Aa: Đôi Nam)</p>
+          </div>
         </div>
+        <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shrink-0">TẤT CẢ CHẠM 15 ĐIỂM</span>
+      </div>
+
+      <!-- BẢNG VINH DANH (NẾU CÓ NHÀ VÔ ĐỊCH) -->
+      ${championHtml}
+
+      <!-- SƠ ĐỒ CÂY 3 CỘT LOẠI TRỰC TIẾP -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative items-start">
         
-        <!-- Bán kết 1 -->
-        ${renderBracketMatchCard(m21, 'BÁN KẾT 1 • SÂN 2', 'Nhất Bảng X', 'Nhì Bảng Đ')}
-
-        <!-- Bán kết 2 -->
-        ${renderBracketMatchCard(m22, 'BÁN KẾT 2 • SÂN 3', 'Nhất Bảng Đ', 'Nhì Bảng X')}
-      </div>
-
-      <!-- Cột 2: TRANH HUY CHƯƠNG -->
-      <div class="space-y-4">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-200">
-          <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-trophy text-amber-500"></i> Tranh Huy Chương (12h20)
-          </h3>
-          <span class="text-xs text-slate-400 font-medium">Chung kết & Tranh Hạng 3</span>
-        </div>
-
-        <!-- Trận Chung Kết -->
-        ${renderBracketMatchCard(m24, 'CHUNG KẾT TRANH VÔ ĐỊCH • SÂN 2', 'Thắng Bán kết 1', 'Thắng Bán kết 2', 'final')}
-
-        <!-- Trận Tranh 3-4 -->
-        ${renderBracketMatchCard(m23, 'TRANH HẠNG BA (HUY CHƯƠNG ĐỒNG) • SÂN 3', 'Thua Bán kết 1', 'Thua Bán kết 2', 'third')}
-      </div>
-
-    </div>
-  `;
-}
-
-function renderBracketMatchCard(m, title, placeholderA, placeholderB, type = 'normal') {
-  if (!m) return '';
-
-  const teamA = getTeamDisplay(m.teamA, placeholderA);
-  const teamB = getTeamDisplay(m.teamB, placeholderB);
-  const setsWon = m.setsWon || { a: 0, b: 0 };
-  const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
-  const isCompleted = m.status === 'completed';
-  const isPlaying = m.status === 'playing';
-
-  const isFinal = type === 'final';
-  const isThird = type === 'third';
-
-  return `
-    <div class="bg-white rounded-3xl border ${isFinal ? 'border-amber-400 ring-4 ring-amber-400/15 shadow-md' : isPlaying ? 'border-blue-400 ring-2 ring-blue-500/15' : 'border-slate-200'} p-5 transition hover:shadow-sm" data-match-id="${m.id}">
-      
-      <!-- Card Header -->
-      <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 text-xs font-black ${isFinal ? 'text-amber-600' : 'text-slate-700'}">
-        <span class="flex items-center gap-1.5">
-          ${isFinal ? '<i class="fa-solid fa-crown text-amber-500 text-sm"></i>' : isThird ? '<i class="fa-solid fa-medal text-amber-600 text-sm"></i>' : '<i class="fa-solid fa-diagram-project text-blue-500"></i>'}
-          ${title}
-        </span>
-        <span class="font-semibold text-slate-400">${m.time}</span>
-      </div>
-
-      <!-- Teams -->
-      <div class="py-3.5 space-y-2">
-        <!-- Đội A -->
-        <div class="flex items-center justify-between p-2.5 rounded-2xl ${m.winner === m.teamA && isCompleted ? 'bg-emerald-50 border border-emerald-200 font-bold' : 'bg-slate-50 border border-slate-100'}">
-          <div>
-            <div class="text-xs sm:text-sm font-bold text-slate-800">${teamA.name}</div>
-            <div class="text-[10px] text-slate-400 font-medium">${teamA.membersText}</div>
+        <!-- CỘT 1: BÁN KẾT (SEMI-FINALS) -->
+        <div class="space-y-5">
+          <div class="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-cyan-950/40 p-2 rounded-xl border border-cyan-800/40">
+            <i class="fa-solid fa-bolt text-cyan-400"></i> BÁN KẾT ĐỒNG ĐỘI (2 TRẬN)
           </div>
-          <span class="font-mono font-black text-lg ${m.winner === m.teamA && isCompleted ? 'text-emerald-600' : 'text-slate-800'}">${setsWon.a}</span>
+          ${renderTeamTieCard('BÁN KẾT 1 ĐỒNG ĐỘI', bk1TieMatches, 'Nhất Bảng X', 'Nhì Bảng Đ')}
+          ${renderTeamTieCard('BÁN KẾT 2 ĐỒNG ĐỘI', bk2TieMatches, 'Nhất Bảng Đ', 'Nhì Bảng X')}
         </div>
 
-        <!-- Đội B -->
-        <div class="flex items-center justify-between p-2.5 rounded-2xl ${m.winner === m.teamB && isCompleted ? 'bg-emerald-50 border border-emerald-200 font-bold' : 'bg-slate-50 border border-slate-100'}">
-          <div>
-            <div class="text-xs sm:text-sm font-bold text-slate-800">${teamB.name}</div>
-            <div class="text-[10px] text-slate-400 font-medium">${teamB.membersText}</div>
+        <!-- CỘT 2: TRANH VÔ ĐỊCH (FINALS) -->
+        <div class="space-y-5">
+          <div class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-amber-950/40 p-2 rounded-xl border border-amber-800/40">
+            <i class="fa-solid fa-crown text-amber-400"></i> TRANH VÔ ĐỊCH (GOLD TIE)
           </div>
-          <span class="font-mono font-black text-lg ${m.winner === m.teamB && isCompleted ? 'text-emerald-600' : 'text-slate-800'}">${setsWon.b}</span>
+          ${renderTeamTieCard('CHUNG KẾT TRANH VÔ ĐỊCH', finalTieMatches, 'Thắng BK 1', 'Thắng BK 2', 'final')}
         </div>
-      </div>
 
-      <!-- Scores & Winner Footer -->
-      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-        <div class="font-mono text-[11px] text-slate-500 flex gap-1.5">
-          ${scores.map(s => `<span class="bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">${s.a}-${s.b}</span>`).join('')}
+        <!-- CỘT 3: TRANH HẠNG BA (BRONZE) -->
+        <div class="space-y-5">
+          <div class="text-xs font-black text-amber-500 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-amber-950/20 p-2 rounded-xl border border-amber-800/30">
+            <i class="fa-solid fa-medal text-amber-500"></i> TRANH HẠNG BA (BRONZE TIE)
+          </div>
+          ${renderTeamTieCard('TRANH HẠNG 3 ĐỒNG ĐỘI', thirdTieMatches, 'Thua BK 1', 'Thua BK 2', 'third')}
         </div>
-        <div>
-          ${isCompleted && m.winner ? `
-            <span class="font-bold text-emerald-600 flex items-center gap-1">
-              <i class="fa-solid fa-trophy text-amber-500"></i>
-              ${isFinal ? 'VÔ ĐỊCH: ' : 'Thắng: '} ${getTeamDisplay(m.winner).name}
-            </span>
-          ` : isPlaying ? `
-            <span class="text-rose-600 font-bold flex items-center gap-1">
-              <span class="live-indicator"></span> Đang diễn ra
-            </span>
-          ` : `
-            <span class="text-slate-400 font-medium">Chờ thi đấu</span>
-          `}
-        </div>
+
       </div>
 
     </div>
@@ -838,7 +1431,7 @@ function renderBracketMatchCard(m, title, placeholderA, placeholderB, type = 'no
 /**
  * Trợ giúp lấy tên và thành viên đội hiển thị
  */
-function getTeamDisplay(teamId, placeholder = "Chưa xác định") {
+function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = null) {
   if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
     return {
       id: null,
@@ -850,67 +1443,196 @@ function getTeamDisplay(teamId, placeholder = "Chưa xác định") {
   }
 
   const team = tournamentData.teams[teamId];
+  let displayName = team.name;
+  if (category === 'men' && team.menName) {
+    displayName = team.menName;
+  } else if (category === 'mixed' && team.mixedName) {
+    displayName = team.mixedName;
+  }
+
   const membersText = (team.members || []).map(m => m.name).join(' - ');
+
   return {
     ...team,
+    name: displayName,
     membersText
   };
 }
 
 /**
- * 5. TẠO & IN MÃ QR CODE GIẢI ĐẤU
+ * Tách tên thành viên của Đội thành 2 dòng (dòng 1 & dòng 2)
  */
-let qrInstance = null;
+function getPlayerNameLines(teamInfo, category = null) {
+  if (!teamInfo) return { line1: "Chưa xác định", line2: "" };
 
-function setupQrCodeModal() {
-  const btnOpen = document.getElementById('btn-qr-modal');
-  const btnClose = document.getElementById('btn-close-qr');
-  const modal = document.getElementById('qr-modal');
-  const qrBox = document.getElementById('qrcode-box');
-  const qrInput = document.getElementById('qr-url-input');
-  const btnPrint = document.getElementById('btn-print-qr');
-  const btnDownload = document.getElementById('btn-download-qr');
+  const matchCategory = category || teamInfo.matchCategory || teamInfo.category;
 
-  if (!btnOpen || !modal) return;
+  const team = (teamInfo.id && tournamentData.teams && tournamentData.teams[teamInfo.id])
+    ? tournamentData.teams[teamInfo.id]
+    : teamInfo;
 
-  btnOpen.addEventListener('click', () => {
-    modal.classList.remove('hidden');
-    const currentUrl = window.location.href.split('#')[0];
-    if (qrInput) qrInput.value = currentUrl;
+  if (team && team.members && Array.isArray(team.members) && team.members.length > 0) {
+    const menMembers = team.members.filter(m => m.role === 'A' || m.role === 'a' || m.role !== 'b');
+    const womenMembers = team.members.filter(m => m.role === 'b');
 
-    if (qrBox && typeof QRCode !== 'undefined') {
-      qrBox.innerHTML = '';
-      qrInstance = new QRCode(qrBox, {
-        text: currentUrl,
-        width: 190,
-        height: 190,
-        colorDark: "#1e293b",
-        colorLight: "#f8fafc",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+    if (matchCategory === 'mixed') {
+      const line1 = menMembers.map(m => m.name).join(' / ') || team.menName || "";
+      const line2 = womenMembers.map(m => m.name).join(' / ') || "";
+      return { line1, line2 };
+    } else {
+      const line1 = menMembers[0] ? menMembers[0].name : "";
+      const line2 = menMembers.slice(1).map(m => m.name).join(' - ');
+      return { line1, line2 };
     }
-  });
-
-  if (btnClose) {
-    btnClose.addEventListener('click', () => modal.classList.add('hidden'));
   }
 
-  if (btnPrint) {
-    btnPrint.addEventListener('click', () => {
-      window.print();
-    });
+  const raw = teamInfo.name || teamInfo.membersText || "";
+  const parts = raw.split(/[\/\-]/).map(s => s.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      line1: parts[0],
+      line2: parts.slice(1).join(" / ")
+    };
   }
 
-  if (btnDownload) {
-    btnDownload.addEventListener('click', () => {
-      const img = qrBox?.querySelector('img');
-      if (img && img.src) {
-        const link = document.createElement('a');
-        link.download = 'ma-qr-giai-cau-long-2026.png';
-        link.href = img.src;
-        link.click();
-      }
-    });
-  }
+  return {
+    line1: raw || "Chưa xác định",
+    line2: ""
+  };
 }
 
+/**
+ * Render Element Hiển thị Bảng Điểm Trận Đấu theo thiết kế mới:
+ * - Badge Trên: Mã/Tên Đội A (vd: X1, A)
+ * - Badge Dưới: Mã/Tên Đội B (vd: Đ2, J)
+ * - Badge Trái: Số Sân (vd: 1, 2, 3)
+ * - Badge Phải: Mã Trận Đấu (vd: M1, M2...) [Match 1, Match 2 theo yêu cầu]
+ * - Nội dung ở giữa: Tên cầu thủ Đội A & Điểm A (Đỏ/Highlight), vạch ngăn cách, Tên cầu thủ Đội B & Điểm B
+ */
+function renderRedesignedMatchCard(m, category = null) {
+  const teamA = getTeamDisplay(m.teamA, m.placeholderA, category || m.category);
+  const teamB = getTeamDisplay(m.teamB, m.placeholderB, category || m.category);
+
+  const isLive = m.status === 'playing';
+  const isCompleted = m.status === 'completed';
+
+  const scores = m.scores || [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }];
+  const setsWon = m.setsWon || { a: 0, b: 0 };
+  const s1 = scores[0] || { a: 0, b: 0 };
+
+  const formatInfo = window.getMatchFormat ? window.getMatchFormat(m, tournamentData.settings) : {
+    isGroup: m.stage === 'group',
+    label: m.stage === 'group' ? "1 set 21" : "3 set 15"
+  };
+
+  const playersA = getPlayerNameLines(teamA, category || m.category);
+  const playersB = getPlayerNameLines(teamB, category || m.category);
+
+  let scoreA = formatInfo.isGroup ? s1.a : setsWon.a;
+  let scoreB = formatInfo.isGroup ? s1.b : setsWon.b;
+
+  let scoreAColor = 'text-slate-400';
+  let scoreBColor = 'text-slate-400';
+  let nameAColor = 'text-white';
+  let nameBColor = 'text-slate-300';
+
+  if (isCompleted || isLive || s1.a > 0 || s1.b > 0) {
+    if (scoreA > scoreB || m.winner === m.teamA) {
+      scoreAColor = 'text-rose-500 font-black drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]';
+      scoreBColor = 'text-slate-400 font-bold';
+      nameAColor = 'text-white font-extrabold';
+      nameBColor = 'text-slate-400 font-medium';
+    } else if (scoreB > scoreA || m.winner === m.teamB) {
+      scoreAColor = 'text-slate-400 font-bold';
+      scoreBColor = 'text-rose-500 font-black drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]';
+      nameAColor = 'text-slate-400 font-medium';
+      nameBColor = 'text-white font-extrabold';
+    } else {
+      scoreAColor = 'text-cyan-400 font-black';
+      scoreBColor = 'text-cyan-400 font-black';
+      nameAColor = 'text-white font-bold';
+      nameBColor = 'text-white font-bold';
+    }
+  }
+
+  const matchNoText = `M${m.matchNo || m.id.replace(/\D/g, '')}`;
+  const playedSets = scores.filter(s => s.a > 0 || s.b > 0);
+
+  return `
+    <div class="relative bg-[#0c1524] rounded-xl border ${isLive ? 'border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_12px_rgba(0,229,255,0.18)]' : 'border-[#16263f]'} p-3 sm:p-3.5 transition hover:border-cyan-500/40 my-1" data-match-id="${m.id}">
+      
+      <!-- 1. BADGE TRÊN: TÊN / MÃ ĐỘI A (vd: X1, A) -->
+      <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#16263f] text-slate-200 border border-[#273e61] px-2.5 py-0.2 rounded-md text-[10px] sm:text-[11px] font-black tracking-wider shadow-sm z-10 flex items-center justify-center min-w-[30px]">
+        <span>${teamA.code || 'A'}</span>
+      </div>
+
+      <!-- 2. BADGE DƯỚI: TÊN / MÃ ĐỘI B (vd: Đ2, J) -->
+      <div class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-[#16263f] text-slate-200 border border-[#273e61] px-2.5 py-0.2 rounded-md text-[10px] sm:text-[11px] font-black tracking-wider shadow-sm z-10 flex items-center justify-center min-w-[30px]">
+        <span>${teamB.code || 'J'}</span>
+      </div>
+
+      <!-- 3. BADGE TRÁI: SỐ SÂN (vd: 1) -->
+      <div class="absolute -left-2.5 top-1/2 -translate-y-1/2 bg-[#091526] text-cyan-400 border border-cyan-500/40 w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-md font-mono font-black text-[10px] sm:text-xs flex items-center justify-center shadow-sm z-10" title="Sân ${m.court}">
+        <span>${m.court}</span>
+      </div>
+
+      <!-- 4. BADGE PHẢI: MÃ TRẬN ĐẤU (vd: M1, M2...) -->
+      <div class="absolute -right-2.5 top-1/2 -translate-y-1/2 bg-[#091526] text-amber-400 border border-amber-500/40 px-1.5 py-0.2 rounded-md font-mono font-black text-[10px] sm:text-[11px] flex items-center justify-center shadow-sm z-10" title="Mã trận ${matchNoText}">
+        <span>${matchNoText}</span>
+      </div>
+
+      <!-- HEADER TRẬN: GIỜ THI ĐẤU, TRẠNG THÁI & CÁC SET -->
+      <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#142338]/60 text-[10px] sm:text-[11px] pr-3.5 sm:pr-4.5">
+        <div class="flex items-center gap-1">
+          <span class="text-slate-400 font-semibold"><i class="fa-regular fa-clock text-cyan-400/80 mr-1"></i>${m.time}</span>
+          <span class="text-slate-600">•</span>
+          <span class="text-slate-400 truncate max-w-[100px] sm:max-w-[120px]">${m.label || (m.category === 'mixed' ? 'Đôi Nam Nữ' : 'Đôi Nam')}</span>
+        </div>
+        <div class="flex items-center gap-1">
+          ${!formatInfo.isGroup && playedSets.length > 0 ? `
+            <div class="flex items-center gap-0.5 font-mono text-[9px]">
+              ${playedSets.map(s => `<span class="bg-[#091120] px-1 py-0.2 rounded text-cyan-300 border border-[#16263f]">${s.a}-${s.b}</span>`).join('')}
+            </div>
+          ` : ''}
+          ${isLive 
+            ? '<span class="text-rose-400 font-bold text-[9px] flex items-center gap-1 bg-rose-950/60 px-1.5 py-0.2 rounded border border-rose-500/30 animate-pulse"><span class="live-indicator-red"></span>Đang đấu</span>'
+            : isCompleted
+            ? '<span class="text-emerald-400 font-bold text-[9px] flex items-center gap-1 bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/30"><i class="fa-solid fa-check"></i> Xong</span>'
+            : '<span class="text-slate-500 font-medium text-[9px] bg-slate-900/60 px-1.5 py-0.2 rounded border border-slate-800">Sắp đấu</span>'
+          }
+        </div>
+      </div>
+
+      <!-- CHÍNH: HIỂN THỊ CẦU THỦ & ĐIỂM SỐ GỌN GÀNG -->
+      <div class="flex flex-col space-y-1.5 py-0.5 px-0.5">
+        
+        <!-- DÒNG TRÊN: ĐỘI A -->
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col text-left truncate pr-2">
+            <span class="${nameAColor} text-xs sm:text-sm leading-snug truncate">${playersA.line1}</span>
+            ${playersA.line2 ? `<span class="${nameAColor} text-[11px] sm:text-xs leading-snug opacity-85 truncate">${playersA.line2}</span>` : ''}
+          </div>
+          <div class="font-mono text-xl sm:text-2xl ${scoreAColor} transition-all pr-4.5 sm:pr-5 pl-2 flex-shrink-0">
+            ${scoreA}
+          </div>
+        </div>
+
+        <!-- VẠCH NGĂN CÁCH GIỮA -->
+        <div class="border-b border-[#182a47]/70 my-0.5"></div>
+
+        <!-- DÒNG DƯỚI: ĐỘI B -->
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col text-left truncate pr-2">
+            <span class="${nameBColor} text-xs sm:text-sm leading-snug truncate">${playersB.line1}</span>
+            ${playersB.line2 ? `<span class="${nameBColor} text-[11px] sm:text-xs leading-snug opacity-85 truncate">${playersB.line2}</span>` : ''}
+          </div>
+          <div class="font-mono text-xl sm:text-2xl ${scoreBColor} transition-all pr-4.5 sm:pr-5 pl-2 flex-shrink-0">
+            ${scoreB}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
