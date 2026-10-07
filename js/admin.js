@@ -103,7 +103,7 @@ function setupPinAuth() {
     const enteredPin = pinInput.value.trim();
     const correctPin = (tournamentData.settings && tournamentData.settings.adminPin) || "123456";
 
-    if (enteredPin === correctPin || enteredPin === "123456") {
+    if (enteredPin === correctPin) {
       sessionStorage.setItem('admin_authenticated', 'true');
       unlockAdmin();
       showToast("Xác thực Ban tổ chức thành công!");
