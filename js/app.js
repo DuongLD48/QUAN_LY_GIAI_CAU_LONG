@@ -574,7 +574,7 @@ function renderStandings() {
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
                 <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
                 <span class="text-[11px] font-medium leading-tight text-white break-words">
-                  ${namesA.line1}${namesA.line2 ? ` <span class="text-slate-400 font-normal">| ${namesA.line2}</span>` : ''}
+                  ${namesA.line1}${namesA.line2 ? ` | ${namesA.line2}` : ''}
                 </span>
               </div>
               <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamA ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
@@ -587,7 +587,7 @@ function renderStandings() {
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
                 <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
                 <span class="text-[11px] font-medium leading-tight text-white break-words">
-                  ${namesB.line1}${namesB.line2 ? ` <span class="text-slate-400 font-normal">| ${namesB.line2}</span>` : ''}
+                  ${namesB.line1}${namesB.line2 ? ` | ${namesB.line2}` : ''}
                 </span>
               </div>
               <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamB ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
@@ -877,8 +877,8 @@ function renderScheduleList() {
           <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamA ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
             <div class="flex items-center gap-2 min-w-0 flex-1">
               <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
-              <span class="text-xs font-semibold leading-tight text-white break-words">
-                ${namesA.line1}${namesA.line2 ? ` <span class="text-slate-400 font-normal">| ${namesA.line2}</span>` : ''}
+              <span class="text-[11px] font-medium leading-tight text-white break-words">
+                ${namesA.line1}${namesA.line2 ? ` | ${namesA.line2}` : ''}
               </span>
             </div>
             <span class="font-mono font-black text-xs sm:text-sm px-2.5 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamA ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
@@ -890,8 +890,8 @@ function renderScheduleList() {
           <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamB ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
             <div class="flex items-center gap-2 min-w-0 flex-1">
               <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
-              <span class="text-xs font-semibold leading-tight text-white break-words">
-                ${namesB.line1}${namesB.line2 ? ` <span class="text-slate-400 font-normal">| ${namesB.line2}</span>` : ''}
+              <span class="text-[11px] font-medium leading-tight text-white break-words">
+                ${namesB.line1}${namesB.line2 ? ` | ${namesB.line2}` : ''}
               </span>
             </div>
             <span class="font-mono font-black text-xs sm:text-sm px-2.5 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamB ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
