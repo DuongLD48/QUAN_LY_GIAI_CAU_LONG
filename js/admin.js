@@ -552,10 +552,17 @@ async function saveInlineMatchScore(matchId) {
 
 function ensureDbConnected() {
   if (typeof window.isFirebaseConfigured === 'function' && !window.isFirebaseConfigured()) {
-    showToast("⚠️ Chưa kết nối Firebase Database!", "error");
-    alert("⚠️ CHƯA KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang ở chế độ chờ. Vui lòng dán Firebase API Key & Database URL trong mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' ở Tab Cài Đặt trước khi thay đổi dữ liệu.");
+    showToast("⚠️ Chưa cấu hình Firebase API Key!", "error");
+    alert("⚠️ CHƯA CẤU HÌNH DATABASE CLOUD!\n\nHệ thống chưa được cài đặt API Key và Database URL.\n\nVui lòng vào Tab 'Cài Đặt & Thể Thức' > dán API Key vào mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' để kích hoạt.");
     return false;
   }
+
+  if (typeof window.isCloudConnected === 'function' && !window.isCloudConnected()) {
+    showToast("⚠️ Mất kết nối Firebase Cloud Server!", "error");
+    alert("⚠️ KHÔNG THỂ LƯU: MẤT KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang mất kết nối tới máy chủ Firebase Cloud (hoặc Sai Database URL/Rules).\n\nVui lòng kiểm tra lại kết nối mạng hoặc cấu hình Firebase.");
+    return false;
+  }
+
   return true;
 }
 

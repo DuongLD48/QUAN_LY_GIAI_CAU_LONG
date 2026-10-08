@@ -307,6 +307,7 @@ if (typeof window !== 'undefined') {
   window.updateMatchSchedule = updateMatchSchedule;
   window.updateSettings = updateSettings;
   window.testDatabaseConnection = testDatabaseConnection;
+  window.isCloudConnected = () => isCloudConnected;
   window.getLocalData = getLocalData;
   window.saveLocalData = saveLocalData;
 }
