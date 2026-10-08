@@ -40,13 +40,31 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`=================================================`);
-  console.log(`🏸 MÁY CHỦ WEB GIẢI CẦU LÔNG 2026 ĐÃ KHỞI CHẠY!`);
-  console.log(`👉 Link Người Xem:  http://localhost:${PORT}/index.html`);
-  console.log(`👉 Link Quản Trị:  http://localhost:${PORT}/admin.html`);
-  console.log(`=================================================`);
+let currentPort = Number(process.env.PORT) || 3000;
 
-  // Tự động mở trình duyệt
-  exec(`start http://localhost:${PORT}/index.html`);
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.warn(`⚠️ Cổng ${currentPort} đang bị chiếm dụng. Đang tự động thử cổng ${currentPort + 1}...`);
+    currentPort += 1;
+    setTimeout(() => {
+      startServer(currentPort);
+    }, 500);
+  } else {
+    console.error('Lỗi máy chủ:', err);
+  }
 });
+
+function startServer(port) {
+  server.listen(port, () => {
+    console.log(`=================================================`);
+    console.log(`🏸 MÁY CHỦ WEB GIẢI CẦU LÔNG 2026 ĐÃ KHỞI CHẠY!`);
+    console.log(`👉 Link Người Xem:  http://localhost:${port}/index.html`);
+    console.log(`👉 Link Quản Trị:  http://localhost:${port}/admin.html`);
+    console.log(`=================================================`);
+
+    // Tự động mở trình duyệt
+    exec(`start http://localhost:${port}/index.html`);
+  });
+}
+
+startServer(currentPort);

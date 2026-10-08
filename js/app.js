@@ -496,7 +496,7 @@ function renderStandings() {
               ${ptDiff > 0 ? '+' + ptDiff : ptDiff}
             </td>
 
-            <!-- TỔNG ĐIỂM SĨ SỐ (Đ) -->
+            <!-- TỔNG ĐIỂM (Đ) -->
             <td class="py-2.5 px-2 text-center font-mono font-bold text-[11px] text-cyan-400">
               ${item.pointsWon}
             </td>
@@ -512,8 +512,8 @@ function renderStandings() {
     let displayGroupMatches = sortedGroupMatches;
     if (searchQuery) {
       displayGroupMatches = sortedGroupMatches.filter(m => {
-        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
-        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
+        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
         const namesA = getPlayerNameLines(teamA, m.category);
         const namesB = getPlayerNameLines(teamB, m.category);
 
@@ -533,8 +533,8 @@ function renderStandings() {
       `;
     } else {
       displayGroupMatches.forEach(m => {
-        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
-        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+        const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
+        const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
 
         const isLive = m.status === 'playing';
         const isCompleted = m.status === 'completed';
@@ -630,9 +630,9 @@ function renderStandings() {
                   <th class="py-2.5 px-2 text-center w-10">RANK</th>
                   <th class="py-2.5 px-2 w-14">TEAM</th>
                   <th class="py-2.5 px-2">ATHLETE</th>
-                  <th class="py-2.5 px-2 text-center text-emerald-400" title="Trận thắng (+1 điểm/trận thắng)">T</th>
-                  <th class="py-2.5 px-2 text-center" title="Hiệu số điểm quả (Tổng điểm ghi được - bị mất)">HS</th>
-                  <th class="py-2.5 px-2 text-center text-cyan-400" title="Tổng điểm thắng sĩ số">Đ</th>
+                  <th class="py-2.5 px-2 text-center text-emerald-400" title="Tổng số trận thắng đồng đội (+1đ/trận)">T</th>
+                  <th class="py-2.5 px-2 text-center" title="Hiệu số điểm quả (Điểm ghi được - Điểm bị mất)">HS</th>
+                  <th class="py-2.5 px-2 text-center text-cyan-400" title="Tổng số điểm quả ghi được">Đ</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[#121f33]/40">
@@ -750,7 +750,7 @@ function calculateGroupStandings(groupKey, category = null) {
     }
   });
 
-  // Sắp xếp: Số trận thắng T (+1đ/trận) -> Hiệu số HS -> Tổng điểm thắng sĩ số Đ
+  // Sắp xếp: Số trận thắng T (+1đ/trận) -> Hiệu số điểm HS (+/-) -> Tổng điểm ghi được Đ
   const sorted = Object.values(stats).sort((a, b) => {
     if (b.won !== a.won) return b.won - a.won;
     const diffPtsA = a.pointsWon - a.pointsLost;
@@ -787,8 +787,8 @@ function renderScheduleList() {
     if (!passFilter) return false;
 
     if (searchQuery) {
-      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
-      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
       const matchText = [
         m.id,
         m.code || '',
@@ -829,8 +829,8 @@ function renderScheduleList() {
     html += '</div>';
   } else {
     filtered.forEach(m => {
-      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category);
-      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category);
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
 
       const isLive = m.status === 'playing';
       const isCompleted = m.status === 'completed';
@@ -956,8 +956,8 @@ function renderLiveCourts() {
     // Các trận tiếp theo trên sân này (tối đa 2 trận kế tiếp)
     const upcomingOnCourt = matches.filter(m => Number(m.court) === courtNumber && m.id !== activeMatch.id && m.status === 'scheduled').slice(0, 2);
 
-    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA, activeMatch.category);
-    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB, activeMatch.category);
+    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA, activeMatch.category, activeMatch);
+    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB, activeMatch.category, activeMatch);
 
     const isLive = activeMatch.status === 'playing';
     const isCompleted = activeMatch.status === 'completed';
@@ -1079,7 +1079,7 @@ function renderLiveCourts() {
             ${upcomingOnCourt.map(u => `
               <div class="flex items-center justify-between text-[11px] bg-[#091120] px-2.5 py-1.5 rounded-lg border border-[#16263f]">
                 <span class="font-mono text-cyan-400 font-bold">${u.time} • Trận ${u.id}</span>
-                <span class="text-white font-semibold">${getTeamDisplay(u.teamA, u.placeholderA, u.category).code || getTeamDisplay(u.teamA, u.placeholderA, u.category).name} vs ${getTeamDisplay(u.teamB, u.placeholderB, u.category).code || getTeamDisplay(u.teamB, u.placeholderB, u.category).name}</span>
+                <span class="text-white font-semibold">${getTeamDisplay(u.teamA, u.placeholderA, u.category, u).code || getTeamDisplay(u.teamA, u.placeholderA, u.category, u).name} vs ${getTeamDisplay(u.teamB, u.placeholderB, u.category, u).code || getTeamDisplay(u.teamB, u.placeholderB, u.category, u).name}</span>
               </div>
             `).join('')}
           </div>
@@ -1097,11 +1097,18 @@ function renderLiveCourts() {
  * 4. RENDER NHÁNH ĐẤU VÒNG CHUNG KẾT (BRACKET ĐÔI NAM NỮ & ĐÔI NAM)
  * =========================================================================
  */
+function normalizeTeamId(id) {
+  if (!id) return null;
+  if (typeof id !== 'string') return id;
+  return id.replace(/^Đ/i, 'D');
+}
+
 function getTeam3MembersText(teamInfo, placeholder) {
-  if (!teamInfo || !teamInfo.id || !tournamentData.teams || !tournamentData.teams[teamInfo.id]) {
+  const normId = normalizeTeamId(teamInfo?.id || (typeof teamInfo === 'string' ? teamInfo : null));
+  if (!normId || !tournamentData.teams || !tournamentData.teams[normId]) {
     return teamInfo?.name || placeholder || "Chưa xác định";
   }
-  const team = tournamentData.teams[teamInfo.id];
+  const team = tournamentData.teams[normId];
   if (team.members && Array.isArray(team.members) && team.members.length > 0) {
     const names = team.members.map(m => m.name).filter(Boolean);
     if (names.length > 0) return names.join(' - ');
@@ -1109,11 +1116,104 @@ function getTeam3MembersText(teamInfo, placeholder) {
   return team.name || placeholder;
 }
 
-function getKnockoutSubMatchPair(m, teamId, placeholder) {
-  if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
+function resolveKnockoutTeamId(match, isTeamB = false) {
+  if (!match) return null;
+  const matches = tournamentData.matches || {};
+
+  // Xử lý Bán kết (M41-M46) nếu teamA/teamB chưa được lưu cứng
+  if (match.stage === 'semi_final' || ['M41','M42','M43','M44','M45','M46'].includes(match.id)) {
+    const rawId = isTeamB ? match.teamB : match.teamA;
+    const norm = normalizeTeamId(rawId);
+    if (norm) return norm;
+
+    const isBK1 = ['M41','M43','M45'].includes(match.id) || (match.code && match.code.includes('BK1'));
+    const isBK2 = ['M42','M44','M46'].includes(match.id) || (match.code && match.code.includes('BK2'));
+
+    const settings = tournamentData.settings || {};
+    const manualTeams = settings.manualKnockoutTeams || {};
+
+    const topX = typeof calculateGroupStandings === 'function' ? calculateGroupStandings('X') : [];
+    const topD = typeof calculateGroupStandings === 'function' ? calculateGroupStandings('D') : [];
+
+    const top1X = manualTeams.top1X || topX[0]?.team?.id || topX[0]?.id || null;
+    const top2X = manualTeams.top2X || topX[1]?.team?.id || topX[1]?.id || null;
+    const top1D = manualTeams.top1D || topD[0]?.team?.id || topD[0]?.id || null;
+    const top2D = manualTeams.top2D || topD[1]?.team?.id || topD[1]?.id || null;
+
+    if (isBK1) {
+      // BK1: teamA = Top 1 X, teamB = Top 2 D
+      return isTeamB ? top2D : top1X;
+    } else if (isBK2) {
+      // BK2: teamA = Top 1 D, teamB = Top 2 X
+      return isTeamB ? top2X : top1D;
+    }
+  }
+
+  // Xử lý Chung kết & Tranh Hạng Ba (M47-M52)
+  if (match.stage === 'final' || match.stage === 'third_place' || ['M47','M48','M49','M50','M51','M52'].includes(match.id)) {
+    const rawId = isTeamB ? match.teamB : match.teamA;
+    const normDirect = normalizeTeamId(rawId);
+
+    const isFinal = ['M47','M49','M51'].includes(match.id) || (!['M48','M50','M52'].includes(match.id) && (match.stage === 'final' || (match.code && match.code.includes('CK'))));
+    const isThird = ['M48','M50','M52'].includes(match.id) || (!isFinal && (match.stage === 'third_place' || (match.code && match.code.includes('H3'))));
+    const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
+    const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
+
+    let bk1WinsA = 0, bk1WinsB = 0;
+    bk1Matches.forEach(sub => {
+      const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
+      if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
+        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
+        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
+        const normW = normalizeTeamId(sub.winner);
+        if (normW === normA || s1.a > s1.b) bk1WinsA++;
+        else if (normW === normB || s1.b > s1.a) bk1WinsB++;
+      }
+    });
+
+    let bk2WinsA = 0, bk2WinsB = 0;
+    bk2Matches.forEach(sub => {
+      const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
+      if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
+        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
+        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
+        const normW = normalizeTeamId(sub.winner);
+        if (normW === normA || s1.a > s1.b) bk2WinsA++;
+        else if (normW === normB || s1.b > s1.a) bk2WinsB++;
+      }
+    });
+
+    const bk1TeamA = normalizeTeamId(bk1Matches[0]?.teamA) || resolveKnockoutTeamId(bk1Matches[0], false);
+    const bk1TeamB = normalizeTeamId(bk1Matches[0]?.teamB) || resolveKnockoutTeamId(bk1Matches[0], true);
+    const bk2TeamA = normalizeTeamId(bk2Matches[0]?.teamA) || resolveKnockoutTeamId(bk2Matches[0], false);
+    const bk2TeamB = normalizeTeamId(bk2Matches[0]?.teamB) || resolveKnockoutTeamId(bk2Matches[0], true);
+
+    let bk1Winner = bk1WinsA >= 2 ? bk1TeamA : (bk1WinsB >= 2 ? bk1TeamB : null);
+    let bk1Loser = bk1WinsA >= 2 ? bk1TeamB : (bk1WinsB >= 2 ? bk1TeamA : null);
+
+    let bk2Winner = bk2WinsA >= 2 ? bk2TeamA : (bk2WinsB >= 2 ? bk2TeamB : null);
+    let bk2Loser = bk2WinsA >= 2 ? bk2TeamB : (bk2WinsB >= 2 ? bk2TeamA : null);
+
+    let result = null;
+    if (!isTeamB) {
+      result = isThird ? bk1Loser : bk1Winner;
+    } else {
+      result = isThird ? bk2Loser : bk2Winner;
+    }
+    if (result) return result;
+    if (normDirect) return normDirect;
+  }
+
+  const rawId = isTeamB ? match.teamB : match.teamA;
+  return normalizeTeamId(rawId);
+}
+
+function getKnockoutSubMatchPair(m, teamId, placeholder, isTeamB = false) {
+  const effectiveTeamId = normalizeTeamId(teamId) || resolveKnockoutTeamId(m, isTeamB);
+  if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
     return placeholder || "Chưa xác định";
   }
-  const team = tournamentData.teams[teamId];
+  const team = tournamentData.teams[effectiveTeamId];
   const members = team.members || [];
   const mA = members.find(mem => mem.role === 'A') || members[0] || { name: "" };
   const ma = members.find(mem => mem.role === 'a') || members[1] || { name: "" };
@@ -1142,7 +1242,7 @@ function renderBracket() {
 
   // Trận Đồng Đội 1: Bán kết 1 (Nhất X vs Nhì Đ) -> M41 (Ab), M43 (ab), M45 (Aa)
   const bk1TieMatches = ['M41', 'M43', 'M45'];
-  
+
   // Trận Đồng Đội 2: Bán kết 2 (Nhất Đ vs Nhì X) -> M42 (Ab), M44 (ab), M46 (Aa)
   const bk2TieMatches = ['M42', 'M44', 'M46'];
 
@@ -1152,19 +1252,75 @@ function renderBracket() {
   // Trận Đồng Đội 4: Tranh Hạng Ba (Thua BK1 vs Thua BK2) -> M48 (Ab), M50 (ab), M52 (Aa)
   const thirdTieMatches = ['M48', 'M50', 'M52'];
 
+  const getSubMatchWinner = (m) => {
+    if (!m) return null;
+    const normWinner = normalizeTeamId(m.winner);
+    const normTeamA = normalizeTeamId(m.teamA) || resolveKnockoutTeamId(m, false);
+    const normTeamB = normalizeTeamId(m.teamB) || resolveKnockoutTeamId(m, true);
+
+    if (normWinner) {
+      if (normWinner === normTeamA || normWinner === normTeamB) return normWinner;
+      return normWinner;
+    }
+    const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
+    if (s1.a > s1.b) return normTeamA;
+    if (s1.b > s1.a) return normTeamB;
+    const sets = m.setsWon || { a: 0, b: 0 };
+    if (sets.a > sets.b) return normTeamA;
+    if (sets.b > sets.a) return normTeamB;
+    return null;
+  };
+
   const getTieWinner = (matchesList) => {
     const subMatches = matchesList.map(id => matches[id]).filter(Boolean);
     if (subMatches.length === 0) return null;
-    let teamAWins = 0;
-    let teamBWins = 0;
-    let teamA = subMatches[0].teamA;
-    let teamB = subMatches[0].teamB;
+    const firstM = subMatches[0];
+    let teamA = resolveKnockoutTeamId(firstM, false) || normalizeTeamId(firstM.teamA);
+    let teamB = resolveKnockoutTeamId(firstM, true) || normalizeTeamId(firstM.teamB);
+
+    if (!teamA || !teamB || teamA === teamB) {
+      for (const m of subMatches) {
+        const a = normalizeTeamId(m.teamA);
+        const b = normalizeTeamId(m.teamB);
+        if (a && b && a !== b) {
+          teamA = a;
+          teamB = b;
+          break;
+        }
+      }
+    }
+
+    const winCounts = {};
     subMatches.forEach(m => {
-      if (m.status === 'completed' && m.winner) {
-        if (m.winner === teamA) teamAWins++;
-        else if (m.winner === teamB) teamBWins++;
+      const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
+      const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
+      if (isMCompleted) {
+        const w = getSubMatchWinner(m);
+        if (w) {
+          winCounts[w] = (winCounts[w] || 0) + 1;
+        }
       }
     });
+
+    for (const [wTeam, wins] of Object.entries(winCounts)) {
+      if (wins >= 2) {
+        let otherTeam = (wTeam === teamA) ? teamB : (wTeam === teamB ? teamA : null);
+        if (!otherTeam) {
+          otherTeam = Object.keys(winCounts).find(t => t !== wTeam) || (firstM ? ((wTeam === normalizeTeamId(firstM.teamA)) ? normalizeTeamId(firstM.teamB) : normalizeTeamId(firstM.teamA)) : null);
+        }
+        const otherWins = winCounts[otherTeam] || 0;
+        return {
+          winnerId: wTeam,
+          loserId: otherTeam,
+          score: `${wins}-${otherWins}`
+        };
+      }
+    }
+
+    if (!teamA || !teamB || teamA === teamB) return null;
+
+    const teamAWins = winCounts[teamA] || 0;
+    const teamBWins = winCounts[teamB] || 0;
     if (teamAWins >= 2) return { winnerId: teamA, loserId: teamB, score: `${teamAWins}-${teamBWins}` };
     if (teamBWins >= 2) return { winnerId: teamB, loserId: teamA, score: `${teamBWins}-${teamAWins}` };
     return null;
@@ -1173,94 +1329,104 @@ function renderBracket() {
   const finalRes = getTieWinner(finalTieMatches);
   const thirdRes = getTieWinner(thirdTieMatches);
 
-  let championHtml = '';
-  if (finalRes && finalRes.winnerId && tournamentData.teams && tournamentData.teams[finalRes.winnerId]) {
-    const champTeam = tournamentData.teams[finalRes.winnerId];
-    const runnerTeam = tournamentData.teams[finalRes.loserId];
-    const thirdTeam = thirdRes && thirdRes.winnerId ? tournamentData.teams[thirdRes.winnerId] : null;
+  const champTeam = finalRes && finalRes.winnerId ? tournamentData.teams[normalizeTeamId(finalRes.winnerId)] : null;
+  const runnerTeam = finalRes && finalRes.loserId ? tournamentData.teams[normalizeTeamId(finalRes.loserId)] : null;
+  const thirdTeam = thirdRes && thirdRes.winnerId ? tournamentData.teams[normalizeTeamId(thirdRes.winnerId)] : null;
 
-    championHtml = `
-      <div class="relative overflow-hidden bg-gradient-to-r from-amber-950/90 via-slate-900 to-yellow-950/90 rounded-3xl border-2 border-amber-400/80 p-5 sm:p-6 shadow-[0_0_35px_rgba(251,191,36,0.3)] space-y-4 mb-6">
-        <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
-        
-        <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-xl font-black shadow-lg">
-              <i class="fa-solid fa-trophy animate-bounce"></i>
-            </div>
-            <div>
-              <h3 class="text-base sm:text-lg font-black text-amber-300 uppercase tracking-wider">VINH DANH NHÀ VÔ ĐỊCH GIẢI ĐẤU NGỌC PHÁT SUNDAY</h3>
-              <p class="text-xs text-amber-200/70">Chúc mừng các đội thi đấu xuất sắc nhất Vòng Loại!</p>
-            </div>
+  let championHtml = `
+    <div class="relative overflow-hidden bg-gradient-to-r from-amber-950/90 via-slate-900 to-yellow-950/90 rounded-3xl border-2 border-amber-400/80 p-5 sm:p-6 shadow-[0_0_35px_rgba(251,191,36,0.3)] space-y-4 mb-6">
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-xl font-black shadow-lg">
+            <i class="fa-solid fa-trophy animate-bounce"></i>
           </div>
-          <span class="hidden sm:inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono text-xs font-bold">🏆 CƠ CẤU GIẢI THƯỞNG</span>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-amber-300 uppercase tracking-wider">VINH DANH NHÀ VÔ ĐỊCH GIẢI ĐẤU NGỌC PHÁT SUNDAY</h3>
+            <p class="text-xs text-amber-200/70">Chúc mừng các đội thi đấu xuất sắc nhất Vòng Loại & Chung Kết!</p>
+          </div>
         </div>
+        <span class="hidden sm:inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono text-xs font-bold">🏆 CƠ CẤU GIẢI THƯỞNG</span>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- 🥇 VÔ ĐỊCH -->
-          <div class="bg-amber-950/60 border border-amber-400/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
-            <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥇</span>
-            <div class="min-w-0">
-              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">NHÀ VÔ ĐỊCH</span>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 🥇 VÔ ĐỊCH -->
+        <div class="bg-amber-950/60 border border-amber-400/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+          <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥇</span>
+          <div class="min-w-0 flex-1">
+            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">NHÀ VÔ ĐỊCH</span>
+            ${champTeam ? `
               <div class="flex items-center gap-1.5 truncate mt-0.5">
                 <span class="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-mono font-black text-xs shrink-0">${champTeam.code}</span>
                 <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(champTeam, champTeam.name)}">${getTeam3MembersText(champTeam, champTeam.name)}</span>
               </div>
-            </div>
+            ` : `
+              <span class="text-xs font-medium text-amber-200/60 italic mt-0.5 block">Chờ kết quả Chung Kết</span>
+            `}
           </div>
+        </div>
 
-          <!-- 🥈 Á QUÂN -->
-          ${runnerTeam ? `
-            <div class="bg-slate-900/80 border border-slate-600/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
-              <span class="w-10 h-10 rounded-xl bg-slate-300 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥈</span>
-              <div class="min-w-0">
-                <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">Á QUÂN (HẠNG 2)</span>
-                <div class="flex items-center gap-1.5 truncate mt-0.5">
-                  <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono font-black text-xs shrink-0">${runnerTeam.code}</span>
-                  <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(runnerTeam, runnerTeam.name)}">${getTeam3MembersText(runnerTeam, runnerTeam.name)}</span>
-                </div>
+        <!-- 🥈 Á QUÂN -->
+        <div class="bg-slate-900/80 border border-slate-600/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+          <span class="w-10 h-10 rounded-xl bg-slate-300 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥈</span>
+          <div class="min-w-0 flex-1">
+            <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">Á QUÂN (HẠNG 2)</span>
+            ${runnerTeam ? `
+              <div class="flex items-center gap-1.5 truncate mt-0.5">
+                <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono font-black text-xs shrink-0">${runnerTeam.code}</span>
+                <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(runnerTeam, runnerTeam.name)}">${getTeam3MembersText(runnerTeam, runnerTeam.name)}</span>
               </div>
-            </div>
-          ` : ''}
+            ` : `
+              <span class="text-xs font-medium text-slate-400 italic mt-0.5 block">Chờ kết quả Chung Kết</span>
+            `}
+          </div>
+        </div>
 
-          <!-- 🥉 HẠNG BA -->
-          ${thirdTeam ? `
-            <div class="bg-amber-950/30 border border-amber-700/50 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
-              <span class="w-10 h-10 rounded-xl bg-amber-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥉</span>
-              <div class="min-w-0">
-                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">HẠNG BA (HẠNG 3)</span>
-                <div class="flex items-center gap-1.5 truncate mt-0.5">
-                  <span class="px-1.5 py-0.5 rounded bg-amber-900 text-amber-300 font-mono font-black text-xs shrink-0">${thirdTeam.code}</span>
-                  <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(thirdTeam, thirdTeam.name)}">${getTeam3MembersText(thirdTeam, thirdTeam.name)}</span>
-                </div>
+        <!-- 🥉 HẠNG BA -->
+        <div class="bg-amber-950/30 border border-amber-700/50 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
+          <span class="w-10 h-10 rounded-xl bg-amber-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥉</span>
+          <div class="min-w-0 flex-1">
+            <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">HẠNG BA (HẠNG 3)</span>
+            ${thirdTeam ? `
+              <div class="flex items-center gap-1.5 truncate mt-0.5">
+                <span class="px-1.5 py-0.5 rounded bg-amber-900 text-amber-300 font-mono font-black text-xs shrink-0">${thirdTeam.code}</span>
+                <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(thirdTeam, thirdTeam.name)}">${getTeam3MembersText(thirdTeam, thirdTeam.name)}</span>
               </div>
-            </div>
-          ` : ''}
+            ` : `
+              <span class="text-xs font-medium text-amber-400/60 italic mt-0.5 block">Chờ kết quả Tranh Hạng 3</span>
+            `}
+          </div>
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
 
   const renderTeamTieCard = (tieTitle, matchesList, placeholderA, placeholderB, type = 'normal') => {
     const subMatches = matchesList.map(id => matches[id]).filter(Boolean);
     if (subMatches.length === 0) return '';
 
     const firstM = subMatches[0];
-    const teamA = getTeamDisplay(firstM.teamA, placeholderA);
-    const teamB = getTeamDisplay(firstM.teamB, placeholderB);
+    const teamA = getTeamDisplay(firstM.teamA, placeholderA, null, firstM, false);
+    const teamB = getTeamDisplay(firstM.teamB, placeholderB, null, firstM, true);
 
     let teamAWins = 0;
     let teamBWins = 0;
     subMatches.forEach(m => {
-      if (m.status === 'completed' && m.winner) {
-        if (m.winner === m.teamA) teamAWins++;
-        else if (m.winner === m.teamB) teamBWins++;
+      const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
+      const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
+      if (isMCompleted) {
+        const w = normalizeTeamId(getSubMatchWinner(m));
+        const normA = normalizeTeamId(teamA.id) || normalizeTeamId(firstM.teamA);
+        const normB = normalizeTeamId(teamB.id) || normalizeTeamId(firstM.teamB);
+        if (w && w === normA) teamAWins++;
+        else if (w && w === normB) teamBWins++;
       }
     });
 
-    const isCompleted = subMatches.length > 0 && subMatches.every(m => m.status === 'completed');
+    const isCompleted = subMatches.length > 0 && subMatches.every(m => m.status === 'completed' || ((m.scores || [])[0]?.a > 0 || (m.scores || [])[0]?.b > 0));
     const isPlaying = subMatches.some(m => m.status === 'playing');
-    const isTieFinished = (teamAWins >= 2 || teamBWins >= 2);
+    const isTieFinished = (teamAWins >= 2 || teamBWins >= 2) || (subMatches.length === 3 && isCompleted);
 
     const isFinal = type === 'final';
     const isThird = type === 'third';
@@ -1272,12 +1438,11 @@ function renderBracket() {
       const scores = m.scores || [{ a: 0, b: 0 }];
       const s1 = scores[0] || { a: 0, b: 0 };
 
-      const pairA = getKnockoutSubMatchPair(m, m.teamA, placeholderA);
-      const pairB = getKnockoutSubMatchPair(m, m.teamB, placeholderB);
+      const pairA = getKnockoutSubMatchPair(m, m.teamA, placeholderA, false);
+      const pairB = getKnockoutSubMatchPair(m, m.teamB, placeholderB, true);
 
       const matchNo = m.matchNo || (m.id ? m.id.replace(/\D/g, '') : '');
       const subTypeLabel = m.subType || (m.code ? m.code.split('-')[1] : '');
-      const categoryText = m.category === 'mixed' ? (subTypeLabel === 'Ab' ? 'Nam A + Nữ b' : 'Nam a + Nữ b') : 'Đôi Nam (A+a)';
 
       const aWin = isMCompleted && s1.a > s1.b;
       const bWin = isMCompleted && s1.b > s1.a;
@@ -1289,7 +1454,6 @@ function renderBracket() {
             <div class="flex items-center gap-1.5">
               <span class="text-slate-500 font-bold">#${matchNo} ${subTypeLabel}</span>
               <span class="text-cyan-400 font-medium">Sân ${m.court} • ${m.time}</span>
-              <span class="text-slate-400 text-[10px]">(${categoryText})</span>
             </div>
             <div>
               ${isMPlaying ? '<span class="text-rose-400 font-bold animate-pulse text-[10px] px-1.5 py-0.2 bg-rose-950 rounded border border-rose-500/40">ĐANG ĐẤU</span>' : isMCompleted ? '<span class="text-slate-400">[Đã đấu]</span>' : '<span class="text-slate-500">[Sắp đấu]</span>'}
@@ -1437,8 +1601,9 @@ function renderBracket() {
 /**
  * Trợ giúp lấy tên và thành viên đội hiển thị
  */
-function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = null) {
-  if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
+function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = null, match = null) {
+  const effectiveTeamId = teamId || (match ? resolveKnockoutTeamId(match, teamId === match.teamB) : null);
+  if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
     return {
       id: null,
       code: "?",
@@ -1448,11 +1613,28 @@ function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = n
     };
   }
 
-  const team = tournamentData.teams[teamId];
+  const team = tournamentData.teams[effectiveTeamId];
+  const members = team.members || [];
+  const mA = members.find(m => m.role === 'A') || members[0] || { name: "" };
+  const ma = members.find(m => m.role === 'a') || members[1] || { name: "" };
+  const mb = members.find(m => m.role === 'b') || members[2] || { name: "" };
+
+  const subType = match?.subType || "";
+  const matchCode = match?.code || "";
+  const cat = category || match?.category;
+
   let displayName = team.name;
-  if (category === 'men' && team.menName) {
-    displayName = team.menName;
-  } else if (category === 'mixed' && team.mixedName) {
+
+  if (subType === 'Ab' || matchCode.includes('Ab')) {
+    if (mA.name && mb.name) displayName = `${mA.name} / ${mb.name}`;
+    else if (team.mixedName) displayName = team.mixedName;
+  } else if (subType === 'ab' || matchCode.includes('ab')) {
+    if (ma.name && mb.name) displayName = `${ma.name} / ${mb.name}`;
+    else if (team.mixedName) displayName = team.mixedName;
+  } else if (subType === 'Aa' || matchCode.includes('Aa') || cat === 'men') {
+    if (team.menName) displayName = team.menName;
+    else if (mA.name && ma.name) displayName = `${mA.name} - ${ma.name}`;
+  } else if (cat === 'mixed' && team.mixedName) {
     displayName = team.mixedName;
   }
 

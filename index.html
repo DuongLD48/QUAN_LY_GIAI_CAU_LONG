@@ -148,10 +148,10 @@
               1. Thể Thức Thi Đấu
             </h3>
             <ul class="text-[11px] text-slate-300 space-y-2 list-disc list-inside">
-              <li><b class="text-white">Vòng Bảng:</b> Thi đấu vòng tròn tính điểm. Mỗi đội thi đấu tổng cộng <span class="text-cyan-400 font-bold">4 trận Đôi Nam Nữ</span> và <span class="text-cyan-400 font-bold">4 trận Đôi Nam</span>.</li>
-              <li><b class="text-white">Thi đấu đồng đội:</b> Mỗi lượt chạm trán gồm 3 trận nhỏ (Nam A + Nữ b, Nam a + Nữ b, Đôi Nam A+a). Đội thắng 2/3 trận giành chiến thắng chung cuộc.</li>
-              <li><b class="text-white">Quy định điểm số:</b> Tất cả các trận toàn giải thi đấu <span class="text-cyan-400 font-bold">1 hiệp chạm 15 điểm</span> (không áp dụng cách 2 điểm, chạm 15 trước là thắng).</li>
-              <li><b class="text-white">Đổi sân:</b> Hai đội đổi sân thi đấu khi một trong hai đội đạt <span class="text-cyan-400 font-bold">8 điểm</span>.</li>
+              <li><b class="text-white">Vòng Bảng:</b> Thi đấu vòng tròn tính điểm (4 trận Đôi Nam Nữ, 4 trận Đôi Nam). Tất cả các trận Vòng Bảng thi đấu <span class="text-cyan-400 font-bold">1 set chạm 21 điểm</span> (đổi sân khi 11 điểm).</li>
+              <li><b class="text-white">Vòng Loại (Knockout):</b> Bán kết &amp; Chung kết thi đấu đồng đội (3 trận nhỏ: Nam A + Nữ b, Nam a + Nữ b, Đôi Nam A+a). Tất cả các trận Vòng Loại thi đấu <span class="text-amber-400 font-bold">1 set chạm 15 điểm</span> (đổi sân khi 8 điểm).</li>
+              <li><b class="text-white">Quy định điểm số:</b> Vòng Bảng chạm <span class="text-cyan-400 font-bold">21 điểm</span>; Vòng Loại chạm <span class="text-amber-400 font-bold">15 điểm</span> (không áp dụng cách biệt 2 điểm, đội đạt mốc điểm trước là thắng).</li>
+              <li><b class="text-white">Đổi sân:</b> Vòng Bảng đổi sân khi một đội đạt <span class="text-cyan-400 font-bold">11 điểm</span>; Vòng Loại đổi sân khi một đội đạt <span class="text-amber-400 font-bold">8 điểm</span>.</li>
             </ul>
           </div>
 
@@ -167,11 +167,11 @@
               </div>
               <div class="flex items-start gap-2">
                 <span class="w-5 h-5 rounded-md bg-cyan-950 border border-cyan-500/40 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">2</span>
-                <div><b class="text-white">Hiệu số Trận thắng (HS):</b> Tổng số trận nhỏ thắng trừ tổng số trận nhỏ thua.</div>
+                <div><b class="text-white">Hiệu số Điểm (HS):</b> Tổng số điểm quả ghi được trừ đi tổng số điểm quả bị mất (+/-).</div>
               </div>
               <div class="flex items-start gap-2">
                 <span class="w-5 h-5 rounded-md bg-cyan-950 border border-cyan-500/40 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">3</span>
-                <div><b class="text-white">Hiệu số Điểm (Đ / +/-):</b> Tổng số điểm quả ghi được trừ đi tổng số điểm quả bị mất.</div>
+                <div><b class="text-white">Tổng điểm (Đ):</b> Tổng số điểm quả ghi được trong tất cả các trận đấu.</div>
               </div>
               <div class="flex items-start gap-2">
                 <span class="w-5 h-5 rounded-md bg-cyan-950 border border-cyan-500/40 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">4</span>
@@ -249,16 +249,16 @@
           <div class="flex items-start gap-2.5 bg-[#091120] p-2.5 rounded-xl border border-[#16263f]">
             <span class="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-500/50 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-xs">2</span>
             <div>
-              <span class="font-bold text-white">Hiệu số Trận thắng (HS):</span>
-              <p class="text-slate-400 text-[11px] mt-0.5">Tổng số trận nhỏ thắng trừ đi số trận nhỏ thua trong lượt đấu đồng đội.</p>
+              <span class="font-bold text-white">Hiệu số Điểm (HS):</span>
+              <p class="text-slate-400 text-[11px] mt-0.5">Tổng số điểm quả ghi được trừ đi tổng số điểm quả bị mất trong giải (+/-).</p>
             </div>
           </div>
 
           <div class="flex items-start gap-2.5 bg-[#091120] p-2.5 rounded-xl border border-[#16263f]">
             <span class="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-500/50 text-cyan-400 font-bold flex items-center justify-center flex-shrink-0 text-xs">3</span>
             <div>
-              <span class="font-bold text-white">Hiệu số Điểm quả (Đ / +/-):</span>
-              <p class="text-slate-400 text-[11px] mt-0.5">Tổng số điểm quả ghi được trừ đi tổng số điểm quả bị mất trong giải.</p>
+              <span class="font-bold text-white">Tổng điểm (Đ):</span>
+              <p class="text-slate-400 text-[11px] mt-0.5">Tổng số điểm quả ghi được trong tất cả các trận đấu của giải.</p>
             </div>
           </div>
 

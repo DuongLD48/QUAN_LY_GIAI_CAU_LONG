@@ -6,8 +6,8 @@
 
 const DEFAULT_SETTINGS = {
   tournamentName: "Giải Cầu Lông Đồng Đội Ngọc Phát Sunday",
-  format: "all_1set15_team_ties", // Tất cả các trận đấu toàn giải đều thi đấu 1 set chạm 15
-  groupPointsPerSet: 15,
+  format: "mixed_group21_ko15", // Vòng bảng: 1 set 21 điểm • Vòng loại: 1 set 15 điểm
+  groupPointsPerSet: 21,
   groupMaxSets: 1,
   groupWinSetsRequired: 1,
   knockoutPointsPerSet: 15,
@@ -15,21 +15,34 @@ const DEFAULT_SETTINGS = {
   knockoutWinSetsRequired: 1,
   pointsForWin: 1,
   pointsForLoss: 0,
-  adminPin: "123456"
+  adminPin: "123456",
+  knockoutMode: "auto", // "auto" hoặc "manual"
+  manualKnockoutTeams: {
+    top1X: "",
+    top2X: "",
+    top1D: "",
+    top2D: ""
+  }
 };
 
 /**
  * Xác định thể thức thi đấu chuẩn xác cho từng trận
- * - Tất cả các trận toàn giải (Vòng bảng, Bán kết, Chung kết): 1 set chạm 15 điểm
+ * - Vòng bảng: 1 set chạm 21 điểm
+ * - Vòng loại (Knockout/Bán kết/Chung kết): 1 set chạm 15 điểm
  */
 function getMatchFormat(match, settings = DEFAULT_SETTINGS) {
+  const isGroup = !match || match.stage === 'group';
+  const targetPts = isGroup
+    ? (Number(settings?.groupPointsPerSet) || 21)
+    : (Number(settings?.knockoutPointsPerSet) || 15);
+
   return {
-    isGroup: true,
-    isFinalStage: false,
+    isGroup: isGroup,
+    isFinalStage: !isGroup,
     maxSets: 1,
-    targetPts: Number(settings?.groupPointsPerSet) || 15,
+    targetPts: targetPts,
     winSetsRequired: 1,
-    label: "1 set 15"
+    label: isGroup ? "1 set chạm 21" : "1 set chạm 15"
   };
 }
 
@@ -271,6 +284,8 @@ function sanitizeMatch(rawMatch, key) {
   const id = (rawMatch && rawMatch.id) || key || def.id;
   const matchNo = (rawMatch && rawMatch.matchNo) || def.matchNo || (id ? Number(String(id).replace(/\D/g, '')) : 0);
 
+  const isKnockout = ['M41','M42','M43','M44','M45','M46','M47','M48','M49','M50','M51','M52'].includes(id);
+
   return {
     ...def,
     ...(rawMatch || {}),
@@ -278,16 +293,16 @@ function sanitizeMatch(rawMatch, key) {
     matchNo: matchNo,
     court: Number((rawMatch && rawMatch.court) || def.court || 1),
     time: (rawMatch && rawMatch.time) || def.time || "12:00",
-    code: (rawMatch && rawMatch.code) || def.code || id,
-    subType: (rawMatch && rawMatch.subType) || def.subType || "",
-    category: (rawMatch && rawMatch.category) || def.category || "mixed",
-    stage: (rawMatch && rawMatch.stage) || def.stage || "group",
+    code: isKnockout ? (def.code || id) : ((rawMatch && rawMatch.code) || def.code || id),
+    subType: isKnockout ? (def.subType || "") : ((rawMatch && rawMatch.subType) || def.subType || ""),
+    category: isKnockout ? (def.category || "mixed") : ((rawMatch && rawMatch.category) || def.category || "mixed"),
+    stage: isKnockout ? (def.stage || "semi_final") : ((rawMatch && rawMatch.stage) || def.stage || "group"),
     group: (rawMatch && rawMatch.group) || def.group || null,
     teamA: (rawMatch && rawMatch.teamA !== undefined) ? rawMatch.teamA : def.teamA,
     teamB: (rawMatch && rawMatch.teamB !== undefined) ? rawMatch.teamB : def.teamB,
-    placeholderA: (rawMatch && rawMatch.placeholderA) || def.placeholderA || "Đội A",
-    placeholderB: (rawMatch && rawMatch.placeholderB) || def.placeholderB || "Đội B",
-    label: (rawMatch && rawMatch.label) || def.label || ""
+    placeholderA: isKnockout ? (def.placeholderA || "Đội A") : ((rawMatch && rawMatch.placeholderA) || def.placeholderA || "Đội A"),
+    placeholderB: isKnockout ? (def.placeholderB || "Đội B") : ((rawMatch && rawMatch.placeholderB) || def.placeholderB || "Đội B"),
+    label: isKnockout ? (def.label || "") : ((rawMatch && rawMatch.label) || def.label || "")
   };
 }
 
@@ -336,4 +351,16 @@ if (typeof window !== 'undefined') {
   window.getMatchFormat = getMatchFormat;
   window.sanitizeMatch = sanitizeMatch;
   window.sanitizeTournamentData = sanitizeTournamentData;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    DEFAULT_SETTINGS,
+    DEFAULT_TEAMS,
+    DEFAULT_MATCHES,
+    getInitialDatabaseData,
+    getMatchFormat,
+    sanitizeMatch,
+    sanitizeTournamentData
+  };
 }

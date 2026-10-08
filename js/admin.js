@@ -437,7 +437,17 @@ function renderAdminMatches() {
           <span class="font-extrabold text-xs text-white bg-slate-700/80 px-2 py-0.5 rounded font-mono shrink-0">#${matchNum}</span>
           ${courtText ? `<span class="text-xs text-cyan-400 font-mono font-bold shrink-0">${courtText}</span>` : ''}
           ${timeText ? `<span class="text-xs text-slate-400 font-mono shrink-0">${timeText}</span>` : ''}
-          <span class="text-[10px] text-slate-300 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-medium hidden lg:inline-block">${m.category === 'mixed' ? 'Nam Nữ' : 'Đôi Nam'}</span>
+          ${(() => {
+            const subTypeLabelScore = m.subType || (m.code ? m.code.split('-')[1] : '');
+            const badgeTxt = (subTypeLabelScore === 'Ab' || m.code?.includes('Ab'))
+              ? 'Nam A + Nữ b'
+              : (subTypeLabelScore === 'ab' || m.code?.includes('ab'))
+                ? 'Nam a + Nữ b'
+                : (subTypeLabelScore === 'Aa' || m.code?.includes('Aa') || m.category === 'men')
+                  ? 'Nam A + Nam a (Đôi Nam)'
+                  : (m.category === 'mixed' ? 'Đôi Nam Nữ' : 'Đôi Nam');
+            return `<span class="text-[10px] text-cyan-300 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-semibold hidden lg:inline-block">${badgeTxt}</span>`;
+          })()}
         </div>
 
         <!-- Trung tâm: Nhập tỷ số trực tiếp -->
@@ -507,18 +517,7 @@ function renderAdminMatches() {
 }
 
 function ensureDbConnected() {
-  if (typeof window.isFirebaseConfigured === 'function' && !window.isFirebaseConfigured()) {
-    showToast("⚠️ Chưa cấu hình Firebase API Key!", "error");
-    alert("⚠️ CHƯA CẤU HÌNH DATABASE CLOUD!\n\nHệ thống chưa được cài đặt API Key và Database URL.\n\nVui lòng vào Tab 'Cài Đặt & Thể Thức' > dán API Key vào mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' để kích hoạt.");
-    return false;
-  }
-
-  if (typeof window.isCloudConnected === 'function' && !window.isCloudConnected()) {
-    showToast("⚠️ Mất kết nối Firebase Cloud Server!", "error");
-    alert("⚠️ KHÔNG THỂ LƯU: MẤT KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang mất kết nối tới máy chủ Firebase Cloud (hoặc Sai Database URL/Rules).\n\nVui lòng kiểm tra lại kết nối mạng hoặc cấu hình Firebase.");
-    return false;
-  }
-
+  // Cho phép hệ thống lưu và cập nhật linh hoạt cả ở chế độ Firebase Cloud lẫn Local Storage
   return true;
 }
 
@@ -783,8 +782,8 @@ function openScoreModal(matchId) {
   currentEditingMatchId = matchId;
   const modal = document.getElementById('score-modal');
 
-  const teamA = getTeamInfo(match.teamA, match.placeholderA, match.category);
-  const teamB = getTeamInfo(match.teamB, match.placeholderB, match.category);
+  const teamA = getTeamInfo(match.teamA, match.placeholderA, match.category, match);
+  const teamB = getTeamInfo(match.teamB, match.placeholderB, match.category, match);
 
   const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
     isGroup: match.stage === 'group',
@@ -793,7 +792,16 @@ function openScoreModal(matchId) {
     label: match.stage === 'group' ? "1 set chạm 21" : "3 set chạm 15"
   };
 
-  document.getElementById('modal-match-badge').textContent = `Trận ${match.id} • Sân ${match.court} • ${match.time} • ${formatInfo.label}`;
+  const subTypeLabelModal = match.subType || (match.code ? match.code.split('-')[1] : '');
+  const subTypeBadgeModal = (subTypeLabelModal === 'Ab' || match.code?.includes('Ab'))
+    ? 'Nam A + Nữ b (Đôi Nam Nữ)'
+    : (subTypeLabelModal === 'ab' || match.code?.includes('ab'))
+      ? 'Nam a + Nữ b (Đôi Nam Nữ)'
+      : (subTypeLabelModal === 'Aa' || match.code?.includes('Aa') || match.category === 'men')
+        ? 'Nam A + Nam a (Đôi Nam)'
+        : (match.category === 'mixed' ? 'Đôi Nam Nữ' : 'Đôi Nam');
+
+  document.getElementById('modal-match-badge').textContent = `Trận ${match.id} • ${subTypeBadgeModal} • Sân ${match.court} • ${match.time} • ${formatInfo.label}`;
   document.getElementById('modal-team-a-name').textContent = teamA.name;
   document.getElementById('modal-team-b-name').textContent = teamB.name;
 
@@ -1037,9 +1045,14 @@ function renderAdminSchedule() {
     const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
     const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
 
-    const catBadge = m.category === 'mixed'
-      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam Nữ</span>'
-      : '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam</span>';
+    const subTypeLabel = m.subType || (m.code ? m.code.split('-')[1] : '');
+    const catBadge = (subTypeLabel === 'Ab' || m.code?.includes('Ab'))
+      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam A + Nữ b</span>'
+      : (subTypeLabel === 'ab' || m.code?.includes('ab'))
+        ? '<span class="text-[10px] text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/50 font-semibold inline-block whitespace-nowrap">Nam a + Nữ b</span>'
+        : (subTypeLabel === 'Aa' || m.code?.includes('Aa') || m.category === 'men')
+          ? '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam (A+a)</span>'
+          : '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam Nữ</span>';
 
     html += `
       <tr class="hover:bg-slate-700/30 transition schedule-row" data-match-id="${m.id}">
@@ -1114,9 +1127,14 @@ function renderAdminSchedule() {
     const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
     const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
 
-    const catBadge = m.category === 'mixed'
-      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam Nữ</span>'
-      : '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam</span>';
+    const subTypeLabelMobile = m.subType || (m.code ? m.code.split('-')[1] : '');
+    const catBadge = (subTypeLabelMobile === 'Ab' || m.code?.includes('Ab'))
+      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam A + Nữ b</span>'
+      : (subTypeLabelMobile === 'ab' || m.code?.includes('ab'))
+        ? '<span class="text-[10px] text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/50 font-semibold inline-block whitespace-nowrap">Nam a + Nữ b</span>'
+        : (subTypeLabelMobile === 'Aa' || m.code?.includes('Aa') || m.category === 'men')
+          ? '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam (A+a)</span>'
+          : '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam Nữ</span>';
 
     html += `
       <div class="bg-slate-900/90 rounded-xl border border-slate-700/80 p-3 space-y-2.5 schedule-row shadow-sm" data-match-id="${m.id}">
@@ -1238,11 +1256,67 @@ function fillSettingsForm() {
   if (formatEl && s.format) formatEl.value = s.format;
   if (ptsEl && s.pointsForWin) ptsEl.value = s.pointsForWin;
   if (pinEl && s.adminPin) pinEl.value = s.adminPin;
+
+  // Cấu hình Knockout mode (Auto vs Manual)
+  const mode = s.knockoutMode || 'auto';
+  const autoRadio = document.getElementById('knockout-mode-auto');
+  const manualRadio = document.getElementById('knockout-mode-manual');
+  const manualContainer = document.getElementById('manual-teams-container');
+
+  if (mode === 'manual') {
+    if (manualRadio) manualRadio.checked = true;
+    if (manualContainer) manualContainer.classList.remove('hidden');
+  } else {
+    if (autoRadio) autoRadio.checked = true;
+    if (manualContainer) manualContainer.classList.add('hidden');
+  }
+
+  // Nạp danh sách các đội vào dropdown chọn thủ công
+  const teams = Object.values(tournamentData.teams || {});
+  const teamsX = teams.filter(t => t.group === 'X');
+  const teamsD = teams.filter(t => t.group === 'D');
+
+  const topXFromStandings = getGroupTopTeams ? getGroupTopTeams('X') : teamsX;
+  const topDFromStandings = getGroupTopTeams ? getGroupTopTeams('D') : teamsD;
+
+  const manualTeams = s.manualKnockoutTeams || {};
+
+  const fillSelectOptions = (selectId, teamList, selectedId) => {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    const optionsHtml = `<option value="">-- Chưa xác định (Để trống) --</option>` + 
+      teamList.map(t => `<option value="${t.id}">${t.code} - ${t.name}</option>`).join('');
+    el.innerHTML = optionsHtml;
+    el.value = selectedId !== undefined && selectedId !== null ? selectedId : "";
+  };
+
+  const defaultTop1X = manualTeams.top1X !== undefined ? manualTeams.top1X : (topXFromStandings[0] ? topXFromStandings[0].id : '');
+  const defaultTop2X = manualTeams.top2X !== undefined ? manualTeams.top2X : (topXFromStandings[1] ? topXFromStandings[1].id : '');
+  const defaultTop1D = manualTeams.top1D !== undefined ? manualTeams.top1D : (topDFromStandings[0] ? topDFromStandings[0].id : '');
+  const defaultTop2D = manualTeams.top2D !== undefined ? manualTeams.top2D : (topDFromStandings[1] ? topDFromStandings[1].id : '');
+
+  fillSelectOptions('select-top1-x', teamsX, defaultTop1X);
+  fillSelectOptions('select-top2-x', teamsX, defaultTop2X);
+  fillSelectOptions('select-top1-d', teamsD, defaultTop1D);
+  fillSelectOptions('select-top2-d', teamsD, defaultTop2D);
 }
 
 function setupSettingsForm() {
   const form = document.getElementById('form-settings');
   if (!form) return;
+
+  const autoRadio = document.getElementById('knockout-mode-auto');
+  const manualRadio = document.getElementById('knockout-mode-manual');
+  const manualContainer = document.getElementById('manual-teams-container');
+
+  if (autoRadio && manualRadio && manualContainer) {
+    autoRadio.addEventListener('change', () => {
+      if (autoRadio.checked) manualContainer.classList.add('hidden');
+    });
+    manualRadio.addEventListener('change', () => {
+      if (manualRadio.checked) manualContainer.classList.remove('hidden');
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1251,6 +1325,14 @@ function setupSettingsForm() {
     const format = document.getElementById('setting-format')?.value || tournamentData.settings?.format || "mixed_group21_ko15";
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
     const adminPin = document.getElementById('setting-admin-pin').value.trim() || "123456";
+
+    const knockoutMode = document.querySelector('input[name="setting-knockout-mode"]:checked')?.value || 'auto';
+    const manualKnockoutTeams = {
+      top1X: document.getElementById('select-top1-x')?.value || '',
+      top2X: document.getElementById('select-top2-x')?.value || '',
+      top1D: document.getElementById('select-top1-d')?.value || '',
+      top2D: document.getElementById('select-top2-d')?.value || ''
+    };
 
     let groupPointsPerSet = 21;
     let groupMaxSets = 1;
@@ -1296,8 +1378,12 @@ function setupSettingsForm() {
         maxSets: knockoutMaxSets,
         winSetsRequired: knockoutWinSetsRequired,
         pointsForWin,
-        adminPin
+        adminPin,
+        knockoutMode,
+        manualKnockoutTeams
       });
+
+      await checkAndUpdateKnockoutBrackets();
 
       showToast("Đã lưu cài đặt thể thức thành công!");
     } catch (err) {
@@ -1464,29 +1550,54 @@ function setupDatabaseActionButtons() {
  */
 async function checkAndUpdateKnockoutBrackets() {
   const matches = tournamentData.matches || {};
-  const groupMatches = Object.values(matches).filter(m => m.stage === 'group');
-  const allGroupDone = groupMatches.length === 40 && groupMatches.every(m => m.status === 'completed');
+  const settings = tournamentData.settings || {};
+  const knockoutMode = settings.knockoutMode || 'auto';
+  const manualTeams = settings.manualKnockoutTeams || {};
 
-  if (allGroupDone) {
-    const topX = getGroupTopTeams('X');
-    const topD = getGroupTopTeams('D');
+  let bk1TeamA = null;
+  let bk1TeamB = null;
+  let bk2TeamA = null;
+  let bk2TeamB = null;
 
-    if (topX.length >= 2 && topD.length >= 2) {
-      const bk1TeamA = topX[0].id; // Nhất X
-      const bk1TeamB = topD[1].id; // Nhì Đ
+  if (knockoutMode === 'manual') {
+    bk1TeamA = manualTeams.top1X || null;
+    bk1TeamB = manualTeams.top2D || null;
+    bk2TeamA = manualTeams.top1D || null;
+    bk2TeamB = manualTeams.top2X || null;
 
-      const bk2TeamA = topD[0].id; // Nhất Đ
-      const bk2TeamB = topX[1].id; // Nhì X
+    // Bán kết 1 (M41, M43, M45)
+    await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
+    await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
+    await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
 
-      // Bán kết 1 (M41, M43, M45)
-      await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
-      await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
-      await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
+    // Bán kết 2 (M42, M44, M46)
+    await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
+    await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
+    await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
+  } else {
+    const groupMatches = Object.values(matches).filter(m => m.stage === 'group');
+    const allGroupDone = groupMatches.length === 40 && groupMatches.every(m => m.status === 'completed');
 
-      // Bán kết 2 (M42, M44, M46)
-      await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
-      await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
-      await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
+    if (allGroupDone) {
+      const topX = getGroupTopTeams('X');
+      const topD = getGroupTopTeams('D');
+
+      if (topX.length >= 2 && topD.length >= 2) {
+        bk1TeamA = topX[0].id; // Nhất X
+        bk1TeamB = topD[1].id; // Nhì Đ
+        bk2TeamA = topD[0].id; // Nhất Đ
+        bk2TeamB = topX[1].id; // Nhì X
+
+        // Bán kết 1 (M41, M43, M45)
+        await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
+        await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
+        await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
+
+        // Bán kết 2 (M42, M44, M46)
+        await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
+        await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
+        await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
+      }
     }
   }
 
@@ -1494,38 +1605,54 @@ async function checkAndUpdateKnockoutBrackets() {
   const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
   const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
 
-  const bk1Done = bk1Matches.length === 3 && bk1Matches.every(m => m.status === 'completed');
-  const bk2Done = bk2Matches.length === 3 && bk2Matches.every(m => m.status === 'completed');
-
-  if (bk1Done && bk2Done) {
-    let bk1WinsA = 0, bk1WinsB = 0;
-    bk1Matches.forEach(m => {
-      if (m.winner === m.teamA) bk1WinsA++;
-      else if (m.winner === m.teamB) bk1WinsB++;
-    });
-    const bk1Winner = bk1WinsA >= bk1WinsB ? bk1Matches[0].teamA : bk1Matches[0].teamB;
-    const bk1Loser = bk1WinsA >= bk1WinsB ? bk1Matches[0].teamB : bk1Matches[0].teamA;
-
-    let bk2WinsA = 0, bk2WinsB = 0;
-    bk2Matches.forEach(m => {
-      if (m.winner === m.teamA) bk2WinsA++;
-      else if (m.winner === m.teamB) bk2WinsB++;
-    });
-    const bk2Winner = bk2WinsA >= bk2WinsB ? bk2Matches[0].teamA : bk2Matches[0].teamB;
-    const bk2Loser = bk2WinsA >= bk2WinsB ? bk2Matches[0].teamB : bk2Matches[0].teamA;
-
-    if (bk1Winner && bk2Winner) {
-      // Tranh Vô Địch (M47, M49, M51)
-      await updateMatchSchedule('M47', { teamA: bk1Winner, teamB: bk2Winner });
-      await updateMatchSchedule('M49', { teamA: bk1Winner, teamB: bk2Winner });
-      await updateMatchSchedule('M51', { teamA: bk1Winner, teamB: bk2Winner });
-
-      // Tranh Hạng Ba (M48, M50, M52)
-      await updateMatchSchedule('M48', { teamA: bk1Loser, teamB: bk2Loser });
-      await updateMatchSchedule('M50', { teamA: bk1Loser, teamB: bk2Loser });
-      await updateMatchSchedule('M52', { teamA: bk1Loser, teamB: bk2Loser });
+  let bk1WinsA = 0, bk1WinsB = 0;
+  bk1Matches.forEach(m => {
+    const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
+    const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
+    if (isMCompleted) {
+      if (m.winner === m.teamA || s1.a > s1.b) bk1WinsA++;
+      else if (m.winner === m.teamB || s1.b > s1.a) bk1WinsB++;
     }
+  });
+
+  let bk2WinsA = 0, bk2WinsB = 0;
+  bk2Matches.forEach(m => {
+    const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
+    const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
+    if (isMCompleted) {
+      if (m.winner === m.teamA || s1.a > s1.b) bk2WinsA++;
+      else if (m.winner === m.teamB || s1.b > s1.a) bk2WinsB++;
+    }
+  });
+
+  const curBk1TeamA = bk1Matches[0]?.teamA;
+  const curBk1TeamB = bk1Matches[0]?.teamB;
+  const curBk2TeamA = bk2Matches[0]?.teamA;
+  const curBk2TeamB = bk2Matches[0]?.teamB;
+
+  let bk1Winner = null, bk1Loser = null;
+  if (bk1WinsA >= 2) { bk1Winner = curBk1TeamA; bk1Loser = curBk1TeamB; }
+  else if (bk1WinsB >= 2) { bk1Winner = curBk1TeamB; bk1Loser = curBk1TeamA; }
+
+  let bk2Winner = null, bk2Loser = null;
+  if (bk2WinsA >= 2) { bk2Winner = curBk2TeamA; bk2Loser = curBk2TeamB; }
+  else if (bk2WinsB >= 2) { bk2Winner = curBk2TeamB; bk2Loser = curBk2TeamA; }
+
+  if (bk1Winner && bk2Winner) {
+    // Tranh Vô Địch (M47, M49, M51)
+    await updateMatchSchedule('M47', { teamA: bk1Winner, teamB: bk2Winner });
+    await updateMatchSchedule('M49', { teamA: bk1Winner, teamB: bk2Winner });
+    await updateMatchSchedule('M51', { teamA: bk1Winner, teamB: bk2Winner });
   }
+
+  if (bk1Loser && bk2Loser) {
+    // Tranh Hạng Ba (M48, M50, M52)
+    await updateMatchSchedule('M48', { teamA: bk1Loser, teamB: bk2Loser });
+    await updateMatchSchedule('M50', { teamA: bk1Loser, teamB: bk2Loser });
+    await updateMatchSchedule('M52', { teamA: bk1Loser, teamB: bk2Loser });
+  }
+
+  renderAdminAll();
 }
 
 function getGroupTopTeams(groupKey) {
@@ -1563,8 +1690,110 @@ function getGroupTopTeams(groupKey) {
   });
 }
 
-function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null, match = null) {
-  if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
+function normalizeTeamId(id) {
+  if (!id) return null;
+  if (typeof id !== 'string') return id;
+  return id.replace(/^Đ/i, 'D');
+}
+
+function resolveKnockoutTeamId(match, isTeamB = false) {
+  if (!match) return null;
+  const matches = tournamentData.matches || {};
+
+  // Xử lý Bán kết (M41-M46) nếu teamA/teamB chưa được lưu cứng
+  if (match.stage === 'semi_final' || ['M41','M42','M43','M44','M45','M46'].includes(match.id)) {
+    const rawId = isTeamB ? match.teamB : match.teamA;
+    const norm = normalizeTeamId(rawId);
+    if (norm) return norm;
+
+    const isBK1 = ['M41','M43','M45'].includes(match.id) || (match.code && match.code.includes('BK1'));
+    const isBK2 = ['M42','M44','M46'].includes(match.id) || (match.code && match.code.includes('BK2'));
+
+    const settings = tournamentData.settings || {};
+    const manualTeams = settings.manualKnockoutTeams || {};
+
+    const topX = typeof getGroupTopTeams === 'function' ? getGroupTopTeams('X') : [];
+    const topD = typeof getGroupTopTeams === 'function' ? getGroupTopTeams('D') : [];
+
+    const top1X = manualTeams.top1X || topX[0]?.id || null;
+    const top2X = manualTeams.top2X || topX[1]?.id || null;
+    const top1D = manualTeams.top1D || topD[0]?.id || null;
+    const top2D = manualTeams.top2D || topD[1]?.id || null;
+
+    if (isBK1) {
+      return isTeamB ? top2D : top1X;
+    } else if (isBK2) {
+      return isTeamB ? top2X : top1D;
+    }
+  }
+
+  // Xử lý Chung kết & Tranh Hạng Ba (M47-M52)
+  if (match.stage === 'final' || match.stage === 'third_place' || ['M47','M48','M49','M50','M51','M52'].includes(match.id)) {
+    const rawId = isTeamB ? match.teamB : match.teamA;
+    const normDirect = normalizeTeamId(rawId);
+
+    const isFinal = ['M47','M49','M51'].includes(match.id) || (!['M48','M50','M52'].includes(match.id) && (match.stage === 'final' || (match.code && match.code.includes('CK'))));
+    const isThird = ['M48','M50','M52'].includes(match.id) || (!isFinal && (match.stage === 'third_place' || (match.code && match.code.includes('H3'))));
+    const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
+    const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
+
+    let bk1WinsA = 0, bk1WinsB = 0;
+    bk1Matches.forEach(sub => {
+      const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
+      if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
+        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
+        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
+        const normW = normalizeTeamId(sub.winner);
+        if (normW === normA || s1.a > s1.b) bk1WinsA++;
+        else if (normW === normB || s1.b > s1.a) bk1WinsB++;
+      }
+    });
+
+    let bk2WinsA = 0, bk2WinsB = 0;
+    bk2Matches.forEach(sub => {
+      const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
+      if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
+        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
+        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
+        const normW = normalizeTeamId(sub.winner);
+        if (normW === normA || s1.a > s1.b) bk2WinsA++;
+        else if (normW === normB || s1.b > s1.a) bk2WinsB++;
+      }
+    });
+
+    const bk1TeamA = normalizeTeamId(bk1Matches[0]?.teamA) || resolveKnockoutTeamId(bk1Matches[0], false);
+    const bk1TeamB = normalizeTeamId(bk1Matches[0]?.teamB) || resolveKnockoutTeamId(bk1Matches[0], true);
+    const bk2TeamA = normalizeTeamId(bk2Matches[0]?.teamA) || resolveKnockoutTeamId(bk2Matches[0], false);
+    const bk2TeamB = normalizeTeamId(bk2Matches[0]?.teamB) || resolveKnockoutTeamId(bk2Matches[0], true);
+
+    let bk1Winner = bk1WinsA >= 2 ? bk1TeamA : (bk1WinsB >= 2 ? bk1TeamB : null);
+    let bk1Loser = bk1WinsA >= 2 ? bk1TeamB : (bk1WinsB >= 2 ? bk1TeamA : null);
+
+    let bk2Winner = bk2WinsA >= 2 ? bk2TeamA : (bk2WinsB >= 2 ? bk2TeamB : null);
+    let bk2Loser = bk2WinsA >= 2 ? bk2TeamB : (bk2WinsB >= 2 ? bk2TeamA : null);
+
+    let result = null;
+    if (!isTeamB) {
+      result = isThird ? bk1Loser : bk1Winner;
+    } else {
+      result = isThird ? bk2Loser : bk2Winner;
+    }
+    if (result) return result;
+    if (normDirect) return normDirect;
+  }
+
+  const rawId = isTeamB ? match.teamB : match.teamA;
+  return normalizeTeamId(rawId);
+}
+
+function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null, match = null, isTeamB = false) {
+  let effectiveTeamId = normalizeTeamId(teamId);
+  if (!effectiveTeamId && match) {
+    const dynamicId = resolveKnockoutTeamId(match, isTeamB);
+    if (dynamicId) effectiveTeamId = dynamicId;
+  }
+
+  if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
     return {
       id: null,
       code: placeholder,
@@ -1572,7 +1801,7 @@ function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null
       membersText: ""
     };
   }
-  const t = tournamentData.teams[teamId];
+  const t = tournamentData.teams[effectiveTeamId];
   let displayName = t.name || placeholder;
 
   const members = t.members || [];
@@ -1595,7 +1824,7 @@ function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null
   }
 
   return {
-    id: teamId,
+    id: effectiveTeamId,
     code: t.code || t.name || placeholder,
     name: displayName,
     membersText: (t.members || []).map(m => m.name).join(' - ')

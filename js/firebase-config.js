@@ -253,43 +253,96 @@ async function seedDatabase(customData = null) {
 }
 
 async function updateMatchScore(matchId, matchUpdate) {
-  if (!firebaseDb) {
-    throw new Error("Chưa kết nối Firebase Cloud Database!");
+  const curData = getFallbackInitialData();
+  const updatedMatches = {
+    ...(curData.matches || {}),
+    [matchId]: {
+      ...((curData.matches && curData.matches[matchId]) || {}),
+      ...matchUpdate,
+      updatedAt: new Date().toISOString()
+    }
+  };
+  saveLocalData({ ...curData, matches: updatedMatches });
+
+  if (firebaseDb) {
+    try {
+      await firebaseDb.ref(`matches/${matchId}`).update({
+        ...matchUpdate,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn("Firebase sync error:", e);
+    }
   }
-  await firebaseDb.ref(`matches/${matchId}`).update({
-    ...matchUpdate,
-    updatedAt: new Date().toISOString()
-  });
 }
 
 async function updateTeam(teamId, teamData) {
-  if (!firebaseDb) {
-    throw new Error("Chưa kết nối Firebase Cloud Database!");
+  const curData = getFallbackInitialData();
+  const updatedTeams = {
+    ...(curData.teams || {}),
+    [teamId]: {
+      ...((curData.teams && curData.teams[teamId]) || {}),
+      ...teamData,
+      updatedAt: new Date().toISOString()
+    }
+  };
+  saveLocalData({ ...curData, teams: updatedTeams });
+
+  if (firebaseDb) {
+    try {
+      await firebaseDb.ref(`teams/${teamId}`).update({
+        ...teamData,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn("Firebase sync error:", e);
+    }
   }
-  await firebaseDb.ref(`teams/${teamId}`).update({
-    ...teamData,
-    updatedAt: new Date().toISOString()
-  });
 }
 
 async function updateMatchSchedule(matchId, scheduleData) {
-  if (!firebaseDb) {
-    throw new Error("Chưa kết nối Firebase Cloud Database!");
+  const curData = getFallbackInitialData();
+  const updatedMatches = {
+    ...(curData.matches || {}),
+    [matchId]: {
+      ...((curData.matches && curData.matches[matchId]) || {}),
+      ...scheduleData,
+      updatedAt: new Date().toISOString()
+    }
+  };
+  saveLocalData({ ...curData, matches: updatedMatches });
+
+  if (firebaseDb) {
+    try {
+      await firebaseDb.ref(`matches/${matchId}`).update({
+        ...scheduleData,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn("Firebase sync error:", e);
+    }
   }
-  await firebaseDb.ref(`matches/${matchId}`).update({
-    ...scheduleData,
-    updatedAt: new Date().toISOString()
-  });
 }
 
 async function updateSettings(newSettings) {
-  if (!firebaseDb) {
-    throw new Error("Chưa kết nối Firebase Cloud Database!");
-  }
-  await firebaseDb.ref('settings').update({
+  const curData = getFallbackInitialData();
+  const updatedSettings = {
+    ...(curData.settings || {}),
     ...newSettings,
     updatedAt: new Date().toISOString()
-  });
+  };
+  saveLocalData({ ...curData, settings: updatedSettings });
+
+  if (firebaseDb) {
+    try {
+      await firebaseDb.ref('settings').update({
+        ...newSettings,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn("Firebase sync error:", e);
+    }
+  }
 }
 
 // Gán toàn cục vào window

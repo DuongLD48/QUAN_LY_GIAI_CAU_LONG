@@ -7,7 +7,8 @@
  * 4. Thuật toán tự động ghép cặp Chung kết (MCK) và Tranh 3-4 (Mi3-4).
  */
 
-import { DEFAULT_TEAMS, DEFAULT_MATCHES, DEFAULT_SETTINGS, getInitialDatabaseData } from '../js/data.js';
+import dataPkg from '../js/data.js';
+const { DEFAULT_TEAMS, DEFAULT_MATCHES, DEFAULT_SETTINGS, getInitialDatabaseData } = dataPkg;
 
 let passedTests = 0;
 let totalTests = 0;
@@ -45,19 +46,19 @@ teamKeys.forEach(key => {
   assert(Array.isArray(t.members) && t.members.length === 3, `Đội ${key} có đầy đủ 3 VĐV (A, a, b).`);
 });
 
-console.log("\n👉 Test 2: Kiểm tra lịch 24 trận đấu...");
+console.log("\n👉 Test 2: Kiểm tra lịch 52 trận đấu...");
 const matchKeys = Object.keys(DEFAULT_MATCHES);
-assert(matchKeys.length === 24, "Tổng số trận trong giải phải là đúng 24 trận.");
+assert(matchKeys.length === 52, "Tổng số trận trong giải phải là đúng 52 trận.");
 
 const groupMatches = matchKeys.filter(k => DEFAULT_MATCHES[k].stage === "group");
 const knockoutMatches = matchKeys.filter(k => DEFAULT_MATCHES[k].stage !== "group");
-assert(groupMatches.length === 20, "Vòng bảng có chính xác 20 trận (10 trận Bảng X + 10 trận Bảng Đ).");
-assert(knockoutMatches.length === 4, "Vòng Knockout có chính xác 4 trận (2 Bán kết, 1 Tranh 3-4, 1 Chung kết).");
+assert(groupMatches.length === 40, "Vòng bảng có chính xác 40 trận.");
+assert(knockoutMatches.length === 12, "Vòng Knockout có chính xác 12 trận.");
 
-assert(DEFAULT_MATCHES["M21"].stage === "semi_final", "M21 là Bán kết 1.");
-assert(DEFAULT_MATCHES["M22"].stage === "semi_final", "M22 là Bán kết 2.");
-assert(DEFAULT_MATCHES["M23"].stage === "third_place", "M23 là Tranh Hạng Ba.");
-assert(DEFAULT_MATCHES["M24"].stage === "final", "M24 là Chung Kết.");
+assert(DEFAULT_MATCHES["M41"].stage === "semi_final", "M41 thuộc Bán kết 1.");
+assert(DEFAULT_MATCHES["M42"].stage === "semi_final", "M42 thuộc Bán kết 2.");
+assert(DEFAULT_MATCHES["M48"].stage === "third_place", "M48 thuộc Tranh Hạng Ba.");
+assert(DEFAULT_MATCHES["M47"].stage === "final", "M47 thuộc Chung Kết.");
 
 // ==========================================
 // TEST 3: KIỂM THỬ THUẬT TOÁN TÍNH BẢNG XẾP HẠNG
