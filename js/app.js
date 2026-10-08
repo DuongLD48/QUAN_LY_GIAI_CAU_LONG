@@ -557,32 +557,38 @@ function renderStandings() {
         const namesB = getPlayerNameLines(teamB, m.category);
 
         matchesHtml += `
-          <div class="flex items-center justify-between py-2 sm:py-2.5 px-2 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-xs gap-2" data-match-id="${m.id}">
-            <div class="flex items-center space-x-1.5 sm:space-x-2 w-5/12 min-w-0">
-              <span class="text-slate-500 font-mono text-[11px] shrink-0">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
-              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamA.code}</span>
-              <div class="flex flex-col min-w-0 leading-tight">
-                <span class="font-semibold text-slate-300 text-[11px] truncate">${namesA.line1}</span>
-                ${namesA.line2 ? `<span class="font-semibold text-slate-300 text-[11px] truncate">${namesA.line2}</span>` : ''}
-              </div>
-            </div>
-
-            <div class="flex flex-col items-center justify-center shrink-0 text-center">
-              <div class="flex items-center gap-1 text-[10px] text-cyan-400 font-mono font-medium whitespace-nowrap">
-                <span>Sân ${m.court} ${m.time}</span>
+          <div class="py-2.5 px-2.5 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-xs space-y-1.5" data-match-id="${m.id}">
+            <!-- Dòng 1: Số trận, Sân, Giờ, Trạng thái & Tỷ số -->
+            <div class="flex items-center justify-between border-b border-[#142338]/40 pb-1.5">
+              <div class="flex items-center gap-1.5 text-[11px] font-mono">
+                <span class="text-slate-500 font-bold">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
+                <span class="px-1.5 py-0.5 rounded bg-[#091526] text-cyan-400 border border-[#162947] text-[10px]">Sân ${m.court} • ${m.time}</span>
                 ${statusBadgeText}
               </div>
-              <div class="mt-0.5 px-2.5 py-0.5 rounded-md font-mono font-black text-xs score-pill-cyan tracking-wider">
+              <div class="px-2.5 py-0.5 rounded-md font-mono font-black text-xs score-pill-cyan tracking-wider">
                 ${scoreBadge}
               </div>
             </div>
 
-            <div class="flex items-center justify-end space-x-1.5 sm:space-x-2 w-5/12 min-w-0 text-right">
-              <div class="flex flex-col min-w-0 leading-tight text-right">
-                <span class="font-semibold text-slate-300 text-[11px] truncate">${namesB.line1}</span>
-                ${namesB.line2 ? `<span class="font-semibold text-slate-300 text-[11px] truncate">${namesB.line2}</span>` : ''}
+            <!-- Dòng 2: Đội A vs Đội B (Hiển thị 100% đầy đủ tên các VĐV không bị cắt dòng) -->
+            <div class="grid grid-cols-2 gap-2 sm:gap-3 items-start text-xs pt-0.5">
+              <!-- Đội A -->
+              <div class="flex items-start gap-1.5 min-w-0">
+                <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono mt-0.5">${teamA.code}</span>
+                <div class="flex flex-col leading-snug break-words min-w-0">
+                  <span class="font-bold text-slate-200 text-xs sm:text-xs">${namesA.line1}</span>
+                  ${namesA.line2 ? `<span class="font-medium text-slate-400 text-[11px] mt-0.5">${namesA.line2}</span>` : ''}
+                </div>
               </div>
-              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamB.code}</span>
+
+              <!-- Đội B -->
+              <div class="flex items-start justify-end gap-1.5 min-w-0 text-right">
+                <div class="flex flex-col leading-snug text-right break-words min-w-0">
+                  <span class="font-bold text-slate-200 text-xs sm:text-xs">${namesB.line1}</span>
+                  ${namesB.line2 ? `<span class="font-medium text-slate-400 text-[11px] mt-0.5">${namesB.line2}</span>` : ''}
+                </div>
+                <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono mt-0.5">${teamB.code}</span>
+              </div>
             </div>
           </div>
         `;
@@ -864,12 +870,12 @@ function renderScheduleList() {
             <!-- Đội A -->
             <div class="text-right sm:w-5/12 ${m.winner === m.teamA ? 'font-bold text-cyan-300' : 'text-slate-200'}">
               <div class="text-xs sm:text-sm font-extrabold flex items-center justify-end gap-1.5">
-                <span class="truncate max-w-[140px] sm:max-w-[170px] text-white">${teamA.name}</span>
+                <span class="break-words text-white">${teamA.name}</span>
                 <span class="w-6 h-5 rounded bg-[#081f33] text-cyan-400 border border-cyan-500/40 text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
                   ${teamA.code}
                 </span>
               </div>
-              <div class="text-[10px] text-[#7d93b0] truncate max-w-[190px] ml-auto font-medium">${teamA.membersText}</div>
+              <div class="text-[10px] text-[#7d93b0] break-words ml-auto font-medium">${teamA.membersText}</div>
             </div>
 
             <!-- Tỷ số Trung tâm [A - B] -->
@@ -888,9 +894,9 @@ function renderScheduleList() {
                 <span class="w-6 h-5 rounded bg-[#081f33] text-cyan-400 border border-cyan-500/40 text-[10px] font-black inline-flex items-center justify-center flex-shrink-0">
                   ${teamB.code}
                 </span>
-                <span class="truncate max-w-[140px] sm:max-w-[170px] text-white">${teamB.name}</span>
+                <span class="break-words text-white">${teamB.name}</span>
               </div>
-              <div class="text-[10px] text-[#7d93b0] truncate max-w-[190px] font-medium">${teamB.membersText}</div>
+              <div class="text-[10px] text-[#7d93b0] break-words font-medium">${teamB.membersText}</div>
             </div>
           </div>
 
