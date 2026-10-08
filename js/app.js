@@ -102,7 +102,7 @@ function updateSyncIndicator(mode) {
   if (!syncText || !syncIcon) return;
 
   if (mode === 'firebase') {
-    syncText.textContent = "Cloud DB: Online";
+    syncText.textContent = "Cloud DB: Trực tuyến";
     syncIcon.className = "fa-solid fa-cloud text-cyan-400";
     if (syncStatus) syncStatus.className = "inline-flex items-center gap-1 text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold";
   } else if (mode === 'disconnected') {
@@ -393,7 +393,7 @@ function renderAllViews() {
       "1_set_31": "Thể thức: 1 hiệp 31 điểm",
       "mixed_group21_ko15": "Vòng bảng: 1 set 21 • Knockout: 3 set 15"
     };
-    formatBadge.textContent = formatMap[settings.format] || "Thể thức: 1 set 21 / 3 set 15";
+    formatBadge.textContent = formatMap[settings.format] || "Thể thức: Tất cả các trận 1 set 15 điểm";
   }
 
   renderStandings();
@@ -413,8 +413,8 @@ function renderStandings() {
   const matches = Object.values(tournamentData.matches || {});
 
   const groups = [
-    { key: 'X', name: 'BẢNG XANH (BẢNG X)', color: 'cyan' },
-    { key: 'D', name: 'BẢNG ĐỎ (BẢNG Đ)', color: 'rose' }
+    { key: 'X', name: 'BẢNG XANH (X)', color: 'cyan' },
+    { key: 'D', name: 'BẢNG ĐỎ (Đ)', color: 'rose' }
   ];
 
   let html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 w-full">';
@@ -470,34 +470,34 @@ function renderStandings() {
         tableRowsHtml += `
           <tr class="hover:bg-[#0e1b2f]/60 transition border-b border-[#121f33]/60">
             <!-- RANK -->
-            <td class="py-2.5 px-2 text-center font-black text-xs">
+            <td class="py-2.5 px-2 text-center font-black text-[11px]">
               ${rankBadgeHtml}
             </td>
 
             <!-- TEAM CODE -->
             <td class="py-2.5 px-2">
-              <span class="px-2 py-0.5 rounded bg-[#101e33] text-slate-200 border border-[#1d3252] text-xs font-black tracking-wider">
+              <span class="px-2 py-0.5 rounded bg-[#101e33] text-slate-200 border border-[#1d3252] text-[11px] font-black tracking-wider">
                 ${item.team.code}
               </span>
             </td>
 
             <!-- ATHLETE -->
-            <td class="py-2.5 px-2 font-bold text-white text-xs sm:text-sm max-w-[170px] truncate">
+            <td class="py-2.5 px-2 font-bold text-white text-[11px] max-w-[170px] truncate">
               ${athleteNames}
             </td>
 
             <!-- TRẬN THẮNG (T: +1đ/trận thắng) -->
-            <td class="py-2.5 px-2 text-center font-mono font-black text-xs sm:text-sm text-emerald-400">
+            <td class="py-2.5 px-2 text-center font-mono font-black text-[11px] text-emerald-400">
               ${item.won}
             </td>
 
             <!-- HIỆU SỐ (HS) -->
-            <td class="py-2.5 px-2 text-center font-mono font-bold text-xs sm:text-sm ${ptDiff > 0 ? 'text-emerald-400' : ptDiff < 0 ? 'text-rose-400' : 'text-slate-400'}">
+            <td class="py-2.5 px-2 text-center font-mono font-bold text-[11px] ${ptDiff > 0 ? 'text-emerald-400' : ptDiff < 0 ? 'text-rose-400' : 'text-slate-400'}">
               ${ptDiff > 0 ? '+' + ptDiff : ptDiff}
             </td>
 
             <!-- TỔNG ĐIỂM SĨ SỐ (Đ) -->
-            <td class="py-2.5 px-2 text-center font-mono font-bold text-xs sm:text-sm text-cyan-400">
+            <td class="py-2.5 px-2 text-center font-mono font-bold text-[11px] text-cyan-400">
               ${item.pointsWon}
             </td>
           </tr>
@@ -556,10 +556,13 @@ function renderStandings() {
         const namesA = getPlayerNameLines(teamA, m.category);
         const namesB = getPlayerNameLines(teamB, m.category);
 
+        const aWin = (isCompleted || isLive) && (m.winner === m.teamA || s1.a > s1.b);
+        const bWin = (isCompleted || isLive) && (m.winner === m.teamB || s1.b > s1.a);
+
         matchesHtml += `
-          <div class="py-2 px-2.5 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-[11px] space-y-1" data-match-id="${m.id}">
+          <div class="bg-[#070d18] py-2 px-2.5 hover:bg-[#0f1b2d] rounded-xl transition border border-[#14233a] text-[11px] space-y-1 my-1.5 shadow-sm" data-match-id="${m.id}">
             <!-- Dòng 1: #1 Sân 1 07:30 ---------------- [Đang đấu] -->
-            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono pb-0.5 border-b border-[#142338]/30">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono pb-0.5 border-b border-[#142338]/40">
               <div class="flex items-center gap-1.5">
                 <span class="text-slate-500 font-bold">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
                 <span class="text-cyan-400 font-medium">Sân ${m.court} • ${m.time}</span>
@@ -569,28 +572,28 @@ function renderStandings() {
               </div>
             </div>
 
-            <!-- Dòng 2: X1 Toàn - Trung cute | Ngân ---------------- 15 -->
-            <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamA ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+            <!-- Dòng 2: Team A -->
+            <div class="flex items-center justify-between gap-2 py-0.5 ${aWin ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
+                <span class="px-1.5 py-0.2 rounded ${aWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
                 <span class="text-[11px] font-medium leading-tight text-white break-words">
                   ${namesA.line1}${namesA.line2 ? ` | ${namesA.line2}` : ''}
                 </span>
               </div>
-              <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamA ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+              <span class="font-mono font-black text-[11px] px-2 py-0.5 rounded ${isCompleted || isLive ? (aWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
                 ${isCompleted || isLive ? s1.a : '-'}
               </span>
             </div>
 
-            <!-- Dòng 3: X2 Gia - Bảo bối | Trúc ---------------- 10 -->
-            <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamB ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+            <!-- Dòng 3: Team B -->
+            <div class="flex items-center justify-between gap-2 py-0.5 ${bWin ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
+                <span class="px-1.5 py-0.2 rounded ${bWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
                 <span class="text-[11px] font-medium leading-tight text-white break-words">
                   ${namesB.line1}${namesB.line2 ? ` | ${namesB.line2}` : ''}
                 </span>
               </div>
-              <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamB ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+              <span class="font-mono font-black text-[11px] px-2 py-0.5 rounded ${isCompleted || isLive ? (bWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
                 ${isCompleted || isLive ? s1.b : '-'}
               </span>
             </div>
@@ -606,25 +609,22 @@ function renderStandings() {
         
         <!-- ELEMENT 1: BẢNG ĐIỂM XẾP HẠNG -->
         <div class="bg-[#0c1524] rounded-2xl border ${isCyan ? 'border-cyan-500/30' : 'border-rose-500/30'} p-4 sm:p-5 shadow-2xl space-y-4">
-          <!-- Header Bảng: Tên Bảng + Đếm số đội & Số trận hoàn thành -->
+          <!-- Header Bảng: Tên Bảng & Số trận hoàn thành -->
           <div class="flex items-center justify-between pb-3 border-b border-[#142338]">
             <div class="flex items-center space-x-2 sm:space-x-2.5">
               <span class="w-3 h-3 rounded-full ${isCyan ? 'bg-cyan-400 shadow-[0_0_8px_rgba(0,229,255,0.6)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'}"></span>
-              <h3 class="font-black text-sm sm:text-base text-white uppercase tracking-wider">
+              <h3 class="font-black text-[11px] text-white uppercase tracking-wider">
                 ${grp.name}
               </h3>
-              <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${isCyan ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/50' : 'bg-rose-950/80 text-rose-300 border border-rose-800/50'}">
-                ${groupTeamsList.length} ĐỘI
-              </span>
             </div>
-            <div class="text-xs text-slate-400 font-mono font-medium">
-              <span class="${completedMatchesCount === sortedGroupMatches.length && sortedGroupMatches.length > 0 ? 'text-emerald-400 font-bold' : 'text-slate-300'}">${completedMatchesCount}/${sortedGroupMatches.length}</span> trận hoàn thành
+            <div class="text-[11px] font-mono font-bold">
+              <span class="${completedMatchesCount === sortedGroupMatches.length && sortedGroupMatches.length > 0 ? 'text-emerald-400 font-bold' : 'text-cyan-400 font-bold'}">${completedMatchesCount}/${sortedGroupMatches.length}</span>
             </div>
           </div>
 
           <!-- Bảng Điểm Standings chuẩn theo giao diện mẫu -->
           <div class="overflow-x-auto my-1">
-            <table class="w-full text-xs text-left whitespace-nowrap">
+            <table class="w-full text-[11px] text-left whitespace-nowrap">
               <thead class="text-slate-400 border-b border-[#142338] text-[11px] uppercase font-bold tracking-wider">
                 <tr>
                   <th class="py-2.5 px-2 text-center w-10">RANK</th>
@@ -644,9 +644,8 @@ function renderStandings() {
 
         <!-- ELEMENT 2: LỊCH THI ĐẤU & TỶ SỐ (ELEMENT RIÊNG BIỆT) -->
         <div class="bg-[#0c1524] rounded-2xl border ${isCyan ? 'border-cyan-500/30' : 'border-rose-500/30'} p-4 sm:p-5 shadow-2xl space-y-3">
-          <button type="button" class="group-matches-toggle w-full flex items-center justify-between text-xs text-slate-200 hover:text-cyan-400 font-bold uppercase tracking-wider transition py-1" data-accordion="${accordionId}">
+          <button type="button" class="group-matches-toggle w-full flex items-center justify-between text-[11px] text-slate-200 hover:text-cyan-400 font-bold uppercase tracking-wider transition py-1" data-accordion="${accordionId}">
             <div class="flex items-center space-x-2 sm:space-x-2.5">
-              <i class="fa-solid fa-calendar-days ${isCyan ? 'text-cyan-400' : 'text-rose-400'}"></i>
               <span>LỊCH THI ĐẤU & TỶ SỐ (${sortedGroupMatches.length} TRẬN)</span>
             </div>
             <i class="fa-solid fa-chevron-up ${isCyan ? 'text-cyan-400' : 'text-rose-400'} text-xs transition-transform transform ${isAccordionOpen ? '' : 'rotate-180'}"></i>
@@ -850,6 +849,10 @@ function renderScheduleList() {
       const namesA = getPlayerNameLines(teamA, m.category);
       const namesB = getPlayerNameLines(teamB, m.category);
 
+      const catBadge = m.category === 'mixed'
+        ? '<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/50">Đôi Nam Nữ</span>'
+        : '<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/50">Đôi Nam</span>';
+
       let statusBadgeText = '';
       if (isLive) {
         statusBadgeText = '<span class="text-rose-400 font-bold animate-pulse">[Đang đấu]</span>';
@@ -860,10 +863,10 @@ function renderScheduleList() {
       }
 
       html += `
-        <div class="bg-[#0c1524] rounded-2xl border ${isLive ? 'border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_15px_rgba(0,229,255,0.15)]' : 'border-[#16263f]'} p-3.5 hover:bg-[#0e1b2f] transition text-[11px] space-y-1.5 mb-3" data-match-id="${m.id}">
+        <div class="bg-[#0c1524] rounded-2xl border ${isLive ? 'border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_15px_rgba(0,229,255,0.15)]' : 'border-[#16263f]'} p-3.5 hover:bg-[#0e1b2f] transition text-xs space-y-1.5 mb-3" data-match-id="${m.id}">
           <!-- Dòng 1: #1 Sân 1 07:30 ---------------- [Đang đấu] -->
-          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono pb-1 border-b border-[#142338]/60">
-            <div class="flex items-center gap-2">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono pb-1 border-b border-[#142338]/60">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="text-slate-500 font-bold">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
               <span class="text-cyan-400 font-semibold">Sân ${m.court} • ${m.time}</span>
               ${catBadge}
@@ -876,8 +879,8 @@ function renderScheduleList() {
           <!-- Dòng 2: X1 Toàn - Trung cute | Ngân ---------------- 15 -->
           <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamA ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
             <div class="flex items-center gap-2 min-w-0 flex-1">
-              <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
-              <span class="text-[11px] font-medium leading-tight text-white break-words">
+              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamA.code}</span>
+              <span class="text-xs font-medium leading-tight text-white break-words">
                 ${namesA.line1}${namesA.line2 ? ` | ${namesA.line2}` : ''}
               </span>
             </div>
@@ -889,8 +892,8 @@ function renderScheduleList() {
           <!-- Dòng 3: X2 Gia - Bảo bối | Trúc ---------------- 10 -->
           <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamB ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
             <div class="flex items-center gap-2 min-w-0 flex-1">
-              <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
-              <span class="text-[11px] font-medium leading-tight text-white break-words">
+              <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono">${teamB.code}</span>
+              <span class="text-xs font-medium leading-tight text-white break-words">
                 ${namesB.line1}${namesB.line2 ? ` | ${namesB.line2}` : ''}
               </span>
             </div>
@@ -1094,6 +1097,18 @@ function renderLiveCourts() {
  * 4. RENDER NHÁNH ĐẤU VÒNG CHUNG KẾT (BRACKET ĐÔI NAM NỮ & ĐÔI NAM)
  * =========================================================================
  */
+function getTeam3MembersText(teamInfo, placeholder) {
+  if (!teamInfo || !teamInfo.id || !tournamentData.teams || !tournamentData.teams[teamInfo.id]) {
+    return teamInfo?.name || placeholder || "Chưa xác định";
+  }
+  const team = tournamentData.teams[teamInfo.id];
+  if (team.members && Array.isArray(team.members) && team.members.length > 0) {
+    const names = team.members.map(m => m.name).filter(Boolean);
+    if (names.length > 0) return names.join(' - ');
+  }
+  return team.name || placeholder;
+}
+
 function getKnockoutSubMatchPair(m, teamId, placeholder) {
   if (!teamId || !tournamentData.teams || !tournamentData.teams[teamId]) {
     return placeholder || "Chưa xác định";
@@ -1174,8 +1189,8 @@ function renderBracket() {
               <i class="fa-solid fa-trophy animate-bounce"></i>
             </div>
             <div>
-              <h3 class="text-base sm:text-lg font-black text-amber-300 uppercase tracking-wider">VINH DANH NHÀ VÔ ĐỊCH GIẢI ĐẤU 2026</h3>
-              <p class="text-xs text-amber-200/70">Chúc mừng các đội thi đấu xuất sắc nhất vòng Knockout!</p>
+              <h3 class="text-base sm:text-lg font-black text-amber-300 uppercase tracking-wider">VINH DANH NHÀ VÔ ĐỊCH GIẢI ĐẤU NGỌC PHÁT SUNDAY</h3>
+              <p class="text-xs text-amber-200/70">Chúc mừng các đội thi đấu xuất sắc nhất Vòng Loại!</p>
             </div>
           </div>
           <span class="hidden sm:inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono text-xs font-bold">🏆 CƠ CẤU GIẢI THƯỞNG</span>
@@ -1186,12 +1201,11 @@ function renderBracket() {
           <div class="bg-amber-950/60 border border-amber-400/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
             <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥇</span>
             <div class="min-w-0">
-              <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest block">NHÀ VÔ ĐỊCH</span>
-              <div class="flex items-center gap-1.5 truncate">
+              <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">NHÀ VÔ ĐỊCH</span>
+              <div class="flex items-center gap-1.5 truncate mt-0.5">
                 <span class="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-mono font-black text-xs shrink-0">${champTeam.code}</span>
-                <span class="font-extrabold text-white text-sm truncate">${champTeam.name}</span>
+                <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(champTeam, champTeam.name)}">${getTeam3MembersText(champTeam, champTeam.name)}</span>
               </div>
-              <p class="text-[10px] text-amber-200/80 truncate mt-0.5">${(champTeam.members || []).map(m => m.name).join(' • ')}</p>
             </div>
           </div>
 
@@ -1200,12 +1214,11 @@ function renderBracket() {
             <div class="bg-slate-900/80 border border-slate-600/60 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
               <span class="w-10 h-10 rounded-xl bg-slate-300 text-slate-950 font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥈</span>
               <div class="min-w-0">
-                <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest block">Á QUÂN (HẠNG 2)</span>
-                <div class="flex items-center gap-1.5 truncate">
+                <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">Á QUÂN (HẠNG 2)</span>
+                <div class="flex items-center gap-1.5 truncate mt-0.5">
                   <span class="px-1.5 py-0.5 rounded bg-slate-700 text-white font-mono font-black text-xs shrink-0">${runnerTeam.code}</span>
-                  <span class="font-extrabold text-white text-sm truncate">${runnerTeam.name}</span>
+                  <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(runnerTeam, runnerTeam.name)}">${getTeam3MembersText(runnerTeam, runnerTeam.name)}</span>
                 </div>
-                <p class="text-[10px] text-slate-400 truncate mt-0.5">${(runnerTeam.members || []).map(m => m.name).join(' • ')}</p>
               </div>
             </div>
           ` : ''}
@@ -1215,12 +1228,11 @@ function renderBracket() {
             <div class="bg-amber-950/30 border border-amber-700/50 p-4 rounded-2xl flex items-center gap-3 shadow-lg">
               <span class="w-10 h-10 rounded-xl bg-amber-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md">🥉</span>
               <div class="min-w-0">
-                <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest block">HẠNG BA (HẠNG 3)</span>
-                <div class="flex items-center gap-1.5 truncate">
+                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">HẠNG BA (HẠNG 3)</span>
+                <div class="flex items-center gap-1.5 truncate mt-0.5">
                   <span class="px-1.5 py-0.5 rounded bg-amber-900 text-amber-300 font-mono font-black text-xs shrink-0">${thirdTeam.code}</span>
-                  <span class="font-extrabold text-white text-sm truncate">${thirdTeam.name}</span>
+                  <span class="font-bold text-white text-xs truncate" title="${getTeam3MembersText(thirdTeam, thirdTeam.name)}">${getTeam3MembersText(thirdTeam, thirdTeam.name)}</span>
                 </div>
-                <p class="text-[10px] text-amber-200/60 truncate mt-0.5">${(thirdTeam.members || []).map(m => m.name).join(' • ')}</p>
               </div>
             </div>
           ` : ''}
@@ -1271,37 +1283,50 @@ function renderBracket() {
       const bWin = isMCompleted && s1.b > s1.a;
 
       subMatchesHtml += `
-        <div class="p-2 rounded-xl bg-[#08101c] border ${isMPlaying ? 'border-cyan-400 ring-1 ring-cyan-400/40 bg-cyan-950/20' : 'border-[#142338]'} space-y-1 transition hover:border-[#1d3354]">
-          <div class="flex items-center justify-between text-[10px]">
+        <div class="bg-[#070d18] py-2 px-2.5 hover:bg-[#0f1b2d] rounded-xl transition border ${isMPlaying ? 'border-cyan-400 ring-1 ring-cyan-400/40 bg-cyan-950/20' : 'border-[#14233a]'} text-[11px] space-y-1 my-1.5 shadow-sm" data-match-id="${m.id}">
+          <!-- Dòng 1: #MatchNo SubType • Sân • Time ---------------- Trạng thái -->
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono pb-0.5 border-b border-[#142338]/40">
             <div class="flex items-center gap-1.5">
-              <span class="px-1.5 py-0.2 rounded bg-[#0f1d32] text-cyan-300 font-mono font-black border border-[#1d355a] text-[10px]">#${matchNo} ${subTypeLabel}</span>
-              <span class="text-slate-400 font-bold">${categoryText}</span>
+              <span class="text-slate-500 font-bold">#${matchNo} ${subTypeLabel}</span>
+              <span class="text-cyan-400 font-medium">Sân ${m.court} • ${m.time}</span>
+              <span class="text-slate-400 text-[10px]">(${categoryText})</span>
             </div>
-            <div class="flex items-center gap-1">
-              <span class="text-slate-400 font-mono text-[10px]">Sân ${m.court} • ${m.time}</span>
-              ${isMPlaying ? '<span class="text-rose-400 font-bold animate-pulse text-[9px] px-1 bg-rose-950 rounded">LIVE</span>' : ''}
+            <div>
+              ${isMPlaying ? '<span class="text-rose-400 font-bold animate-pulse text-[10px] px-1.5 py-0.2 bg-rose-950 rounded border border-rose-500/40">ĐANG ĐẤU</span>' : isMCompleted ? '<span class="text-slate-400">[Đã đấu]</span>' : '<span class="text-slate-500">[Sắp đấu]</span>'}
             </div>
           </div>
 
-          <div class="grid grid-cols-7 items-center gap-1 text-xs pt-0.5">
-            <div class="col-span-3 truncate text-right font-medium ${aWin ? 'text-cyan-300 font-extrabold' : 'text-slate-300'}" title="${pairA}">
-              ${pairA}
+          <!-- Dòng 2: Pair A ---------------- Score A -->
+          <div class="flex items-center justify-between gap-2 py-0.5 ${aWin ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="px-1.5 py-0.2 rounded ${aWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
+              <span class="text-[11px] font-medium leading-tight text-white truncate" title="${pairA}">
+                ${pairA}
+              </span>
             </div>
-            <div class="col-span-1 text-center font-mono font-black text-xs px-1 py-0.5 rounded bg-[#0c182a] border border-[#182a47]">
-              <span class="${aWin ? 'text-cyan-300 font-black' : 'text-slate-400'}">${isMCompleted || isMPlaying ? s1.a : '-'}</span>
-              <span class="text-slate-600 px-0.5">:</span>
-              <span class="${bWin ? 'text-cyan-300 font-black' : 'text-slate-400'}">${isMCompleted || isMPlaying ? s1.b : '-'}</span>
+            <span class="font-mono font-black text-[11px] px-2 py-0.5 rounded ${isMCompleted || isMPlaying ? (aWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+              ${isMCompleted || isMPlaying ? s1.a : '-'}
+            </span>
+          </div>
+
+          <!-- Dòng 3: Pair B ---------------- Score B -->
+          <div class="flex items-center justify-between gap-2 py-0.5 ${bWin ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="px-1.5 py-0.2 rounded ${bWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
+              <span class="text-[11px] font-medium leading-tight text-white truncate" title="${pairB}">
+                ${pairB}
+              </span>
             </div>
-            <div class="col-span-3 truncate text-left font-medium ${bWin ? 'text-cyan-300 font-extrabold' : 'text-slate-300'}" title="${pairB}">
-              ${pairB}
-            </div>
+            <span class="font-mono font-black text-[11px] px-2 py-0.5 rounded ${isMCompleted || isMPlaying ? (bWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+              ${isMCompleted || isMPlaying ? s1.b : '-'}
+            </span>
           </div>
         </div>
       `;
     });
 
-    const namesA = getPlayerNameLines(teamA);
-    const namesB = getPlayerNameLines(teamB);
+    const displayMembersA = getTeam3MembersText(teamA, placeholderA);
+    const displayMembersB = getTeam3MembersText(teamB, placeholderB);
     const aTieWin = teamAWins >= 2;
     const bTieWin = teamBWins >= 2;
 
@@ -1309,7 +1334,7 @@ function renderBracket() {
       <div class="bg-[#0c1524] rounded-2xl border ${isFinal ? 'border-amber-400/80 shadow-[0_0_25px_rgba(251,191,36,0.2)] ring-1 ring-amber-400/40' : isThird ? 'border-amber-600/50 shadow-md' : isPlaying ? 'border-cyan-400 ring-2 ring-cyan-500/20' : 'border-[#16263f]'} p-4 space-y-3 shadow-xl transition hover:border-cyan-500/50">
         
         <!-- Card Header -->
-        <div class="flex items-center justify-between pb-2 border-b border-[#142338] text-xs font-black ${isFinal ? 'text-amber-400' : isThird ? 'text-amber-500' : 'text-cyan-400'} uppercase tracking-wider">
+        <div class="flex items-center justify-between pb-2 border-b border-[#142338] text-[11px] font-black ${isFinal ? 'text-amber-400' : isThird ? 'text-amber-500' : 'text-cyan-400'} uppercase tracking-wider">
           <span class="flex items-center gap-1.5">
             ${isFinal ? '<i class="fa-solid fa-crown text-amber-400 text-sm"></i>' : isThird ? '<i class="fa-solid fa-medal text-amber-500 text-sm"></i>' : '<i class="fa-solid fa-trophy text-cyan-400"></i>'}
             ${tieTitle}
@@ -1317,36 +1342,37 @@ function renderBracket() {
           <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${isTieFinished ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : isPlaying ? 'bg-cyan-950 text-cyan-400 border border-cyan-800 animate-pulse' : 'bg-slate-900 text-slate-400'}">${isTieFinished ? 'ĐÃ XONG' : isPlaying ? 'ĐANG THI ĐẤU' : 'SẮP ĐẤU'}</span>
         </div>
 
-        <!-- Tên 2 Đội & Tỷ số Đồng Đội -->
-        <div class="grid grid-cols-5 items-center gap-2 bg-[#08101c] p-3 rounded-xl border border-[#142338]">
-          <!-- Đội A -->
-          <div class="col-span-2 space-y-1">
-            <div class="flex items-center space-x-1.5">
-              <span class="px-1.5 py-0.5 rounded ${aTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-xs font-mono shrink-0">${teamA.code}</span>
-              <span class="font-extrabold ${aTieWin ? 'text-cyan-300 font-black' : 'text-white'} text-xs truncate">${teamA.name}</span>
-            </div>
-            <div class="text-[10px] text-slate-400 leading-tight truncate">
-              ${namesA.line1} ${namesA.line2 ? `• ${namesA.line2}` : ''}
-            </div>
+        <!-- Tên 2 Đội & Tỷ số Đồng Đội (Bố cục phẳng chuẩn đồng nhất) -->
+        <div class="bg-[#070d18] py-2 px-2.5 hover:bg-[#0f1b2d] rounded-xl transition border border-[#14233a] text-[11px] space-y-1 my-1.5 shadow-sm">
+          <!-- Dòng thông tin đồng đội -->
+          <div class="pb-0.5 border-b border-[#142338]/40">
+            <span class="text-cyan-400 font-bold">Trận Đồng Đội</span>
           </div>
 
-          <!-- Tỷ số đồng đội trung tâm -->
-          <div class="col-span-1 flex flex-col items-center justify-center text-center">
-            <div class="text-base font-mono font-black ${isTieFinished ? 'text-amber-400 bg-amber-950/80 border-amber-500/60' : 'text-cyan-300 bg-[#0c1a2e] border-cyan-500/40'} px-2.5 py-0.5 rounded-lg border shadow-sm whitespace-nowrap">
-              ${teamAWins} - ${teamBWins}
+          <!-- Đội A -->
+          <div class="flex items-center justify-between gap-2 py-0.5 ${aTieWin ? 'text-cyan-300 font-bold' : 'text-slate-300 font-normal'}">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="px-1.5 py-0.2 rounded ${aTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
+              <span class="text-[11px] leading-tight text-white truncate ${aTieWin ? 'font-bold' : 'font-normal text-slate-300'}" title="${displayMembersA}">
+                ${displayMembersA}
+              </span>
             </div>
-            <span class="text-[9px] text-slate-400 uppercase font-bold mt-1">Đồng đội</span>
+            <span class="font-mono text-[11px] px-2 py-0.5 rounded ${aTieWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black' : 'bg-[#091120] text-slate-300 font-normal'} shrink-0">
+              ${teamAWins}
+            </span>
           </div>
 
           <!-- Đội B -->
-          <div class="col-span-2 space-y-1 text-right">
-            <div class="flex items-center justify-end space-x-1.5">
-              <span class="font-extrabold ${bTieWin ? 'text-cyan-300 font-black' : 'text-white'} text-xs truncate">${teamB.name}</span>
-              <span class="px-1.5 py-0.5 rounded ${bTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-xs font-mono shrink-0">${teamB.code}</span>
+          <div class="flex items-center justify-between gap-2 py-0.5 ${bTieWin ? 'text-cyan-300 font-bold' : 'text-slate-300 font-normal'}">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="px-1.5 py-0.2 rounded ${bTieWin ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-[#101e33] text-cyan-300 border border-[#1d3252]'} text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
+              <span class="text-[11px] leading-tight text-white truncate ${bTieWin ? 'font-bold' : 'font-normal text-slate-300'}" title="${displayMembersB}">
+                ${displayMembersB}
+              </span>
             </div>
-            <div class="text-[10px] text-slate-400 leading-tight text-right truncate">
-              ${namesB.line1} ${namesB.line2 ? `• ${namesB.line2}` : ''}
-            </div>
+            <span class="font-mono text-[11px] px-2 py-0.5 rounded ${bTieWin ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-black' : 'bg-[#091120] text-slate-300 font-normal'} shrink-0">
+              ${teamBWins}
+            </span>
           </div>
         </div>
 
@@ -1366,47 +1392,40 @@ function renderBracket() {
   container.innerHTML = `
     <div class="bg-[#0c1524] rounded-3xl border border-[#16263f] p-4 sm:p-6 shadow-2xl space-y-6">
       
-      <!-- Header Thể Thức Đồng Đội -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#142338]">
-        <div class="flex items-center space-x-2 sm:space-x-3">
-          <span class="w-3 h-7 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(0,229,255,0.6)] inline-block shrink-0"></span>
-          <div>
-            <h3 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">SƠ ĐỒ NHÁNH ĐẤU • VÒNG CHUNG KẾT ĐỒNG ĐỘI</h3>
-            <p class="text-xs text-slate-400">4 Đội xuất sắc nhất • Mỗi cặp đấu 3 trận con (Ab: Nam A+Nữ b, ab: Nam a+Nữ b, Aa: Đôi Nam)</p>
-          </div>
-        </div>
-        <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shrink-0">TẤT CẢ CHẠM 15 ĐIỂM</span>
-      </div>
-
       <!-- BẢNG VINH DANH (NẾU CÓ NHÀ VÔ ĐỊCH) -->
       ${championHtml}
 
-      <!-- SƠ ĐỒ CÂY 3 CỘT LOẠI TRỰC TIẾP -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative items-start">
+      <!-- SƠ ĐỒ NHÁNH ĐẤU KNOCKOUT (1 HÀNG 2 Ô DẠNG FLEX) -->
+      <div class="space-y-6">
         
-        <!-- CỘT 1: BÁN KẾT (SEMI-FINALS) -->
-        <div class="space-y-5">
-          <div class="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-cyan-950/40 p-2 rounded-xl border border-cyan-800/40">
-            <i class="fa-solid fa-bolt text-cyan-400"></i> BÁN KẾT ĐỒNG ĐỘI (2 TRẬN)
+        <!-- VÒNG BÁN KẾT (1 HÀNG 2 Ô: BÁN KẾT 1 & BÁN KẾT 2) -->
+        <div class="space-y-3">
+          <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-950/40 border border-cyan-800/40">
+            VÒNG BÁN KẾT ĐỒNG ĐỘI (2 TRẬN)
           </div>
-          ${renderTeamTieCard('BÁN KẾT 1 ĐỒNG ĐỘI', bk1TieMatches, 'Nhất Bảng X', 'Nhì Bảng Đ')}
-          ${renderTeamTieCard('BÁN KẾT 2 ĐỒNG ĐỘI', bk2TieMatches, 'Nhất Bảng Đ', 'Nhì Bảng X')}
+          <div class="flex flex-col md:flex-row gap-4 sm:gap-5">
+            <div class="flex-1 min-w-0">
+              ${renderTeamTieCard('BÁN KẾT 1 ĐỒNG ĐỘI', bk1TieMatches, 'Nhất Bảng X', 'Nhì Bảng Đ')}
+            </div>
+            <div class="flex-1 min-w-0">
+              ${renderTeamTieCard('BÁN KẾT 2 ĐỒNG ĐỘI', bk2TieMatches, 'Nhất Bảng Đ', 'Nhì Bảng X')}
+            </div>
+          </div>
         </div>
 
-        <!-- CỘT 2: TRANH VÔ ĐỊCH (FINALS) -->
-        <div class="space-y-5">
-          <div class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-amber-950/40 p-2 rounded-xl border border-amber-800/40">
-            <i class="fa-solid fa-crown text-amber-400"></i> TRANH VÔ ĐỊCH (GOLD TIE)
+        <!-- VÒNG CHUNG KẾT & TRANH HẠNG BA (1 HÀNG 2 Ô: CHUNG KẾT & TRANH HẠNG 3) -->
+        <div class="space-y-3">
+          <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-950/40 border border-amber-800/40">
+            VÒNG CHUNG KẾT & TRANH HẠNG BA
           </div>
-          ${renderTeamTieCard('CHUNG KẾT TRANH VÔ ĐỊCH', finalTieMatches, 'Thắng BK 1', 'Thắng BK 2', 'final')}
-        </div>
-
-        <!-- CỘT 3: TRANH HẠNG BA (BRONZE) -->
-        <div class="space-y-5">
-          <div class="text-xs font-black text-amber-500 uppercase tracking-wider flex items-center gap-1.5 px-1 bg-amber-950/20 p-2 rounded-xl border border-amber-800/30">
-            <i class="fa-solid fa-medal text-amber-500"></i> TRANH HẠNG BA (BRONZE TIE)
+          <div class="flex flex-col md:flex-row gap-4 sm:gap-5">
+            <div class="flex-1 min-w-0">
+              ${renderTeamTieCard('CHUNG KẾT TRANH VÔ ĐỊCH', finalTieMatches, 'Thắng BK 1', 'Thắng BK 2', 'final')}
+            </div>
+            <div class="flex-1 min-w-0">
+              ${renderTeamTieCard('TRANH HẠNG 3 ĐỒNG ĐỘI', thirdTieMatches, 'Thua BK 1', 'Thua BK 2', 'third')}
+            </div>
           </div>
-          ${renderTeamTieCard('TRANH HẠNG 3 ĐỒNG ĐỘI', thirdTieMatches, 'Thua BK 1', 'Thua BK 2', 'third')}
         </div>
 
       </div>

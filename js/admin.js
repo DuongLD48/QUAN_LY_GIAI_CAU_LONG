@@ -138,9 +138,9 @@ function updateDbBadge(mode) {
 
   if (mode === 'firebase') {
     badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-bold";
-    badge.textContent = "Firebase Cloud Online";
+    badge.textContent = "Firebase Cloud Trực Tuyến";
     if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse";
-    if (title) title.innerHTML = `<span class="text-emerald-400">Google Cloud: ĐÃ KẾT NỐI ONLINE</span>`;
+    if (title) title.innerHTML = `<span class="text-emerald-400">Google Cloud: ĐÃ KẾT NỐI TRỰC TUYẾN</span>`;
     if (note) {
       const dbUrl = window.firebaseConfig?.databaseURL || 'Đã cấu hình';
       note.innerHTML = `<div class="space-y-1">
@@ -216,7 +216,7 @@ function setupPingTestButton() {
     }
 
     btnPing.disabled = false;
-    btnPing.innerHTML = `<i class="fa-solid fa-signal"></i> Ping Test`;
+    btnPing.innerHTML = `<i class="fa-solid fa-signal"></i> Kiểm Tra Kết Nối`;
   });
 }
 
@@ -506,6 +506,22 @@ function renderAdminMatches() {
   });
 }
 
+function ensureDbConnected() {
+  if (typeof window.isFirebaseConfigured === 'function' && !window.isFirebaseConfigured()) {
+    showToast("⚠️ Chưa cấu hình Firebase API Key!", "error");
+    alert("⚠️ CHƯA CẤU HÌNH DATABASE CLOUD!\n\nHệ thống chưa được cài đặt API Key và Database URL.\n\nVui lòng vào Tab 'Cài Đặt & Thể Thức' > dán API Key vào mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' để kích hoạt.");
+    return false;
+  }
+
+  if (typeof window.isCloudConnected === 'function' && !window.isCloudConnected()) {
+    showToast("⚠️ Mất kết nối Firebase Cloud Server!", "error");
+    alert("⚠️ KHÔNG THỂ LƯU: MẤT KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang mất kết nối tới máy chủ Firebase Cloud (hoặc Sai Database URL/Rules).\n\nVui lòng kiểm tra lại kết nối mạng hoặc cấu hình Firebase.");
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Hàm hỗ trợ lưu điểm trực tiếp từ hàng trận đấu gọn
  */
@@ -549,22 +565,6 @@ async function saveInlineMatchScore(matchId) {
     };
     match.winner = (status === 'completed' && scoreA !== scoreB) ? (scoreA > scoreB ? match.teamA : match.teamB) : null;
   }
-
-function ensureDbConnected() {
-  if (typeof window.isFirebaseConfigured === 'function' && !window.isFirebaseConfigured()) {
-    showToast("⚠️ Chưa cấu hình Firebase API Key!", "error");
-    alert("⚠️ CHƯA CẤU HÌNH DATABASE CLOUD!\n\nHệ thống chưa được cài đặt API Key và Database URL.\n\nVui lòng vào Tab 'Cài Đặt & Thể Thức' > dán API Key vào mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' để kích hoạt.");
-    return false;
-  }
-
-  if (typeof window.isCloudConnected === 'function' && !window.isCloudConnected()) {
-    showToast("⚠️ Mất kết nối Firebase Cloud Server!", "error");
-    alert("⚠️ KHÔNG THỂ LƯU: MẤT KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang mất kết nối tới máy chủ Firebase Cloud (hoặc Sai Database URL/Rules).\n\nVui lòng kiểm tra lại kết nối mạng hoặc cấu hình Firebase.");
-    return false;
-  }
-
-  return true;
-}
 
   // Cập nhật Database Realtime
   if (!ensureDbConnected()) return;
@@ -1138,8 +1138,8 @@ function setupSettingsForm() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!ensureDbConnected()) return;
-    const tournamentName = document.getElementById('setting-tournament-name').value.trim();
-    const format = document.getElementById('setting-format').value;
+    const tournamentName = document.getElementById('setting-tournament-name')?.value?.trim() || tournamentData.settings?.tournamentName || "Giải Cầu Lông Giao Hữu 2026";
+    const format = document.getElementById('setting-format')?.value || tournamentData.settings?.format || "mixed_group21_ko15";
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
     const adminPin = document.getElementById('setting-admin-pin').value.trim() || "123456";
 

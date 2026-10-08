@@ -5,7 +5,7 @@
  */
 
 const DEFAULT_SETTINGS = {
-  tournamentName: "GIẢI CẦU LÔNG GIAO HƯU 2026",
+  tournamentName: "Giải Cầu Lông Đồng Đội Ngọc Phát Sunday",
   format: "all_1set15_team_ties", // Tất cả các trận đấu toàn giải đều thi đấu 1 set chạm 15
   groupPointsPerSet: 15,
   groupMaxSets: 1,

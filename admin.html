@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bảng Quản Trị - Giải Cầu Lông 2026</title>
+  <title>Ngọc Phát Sunday - Bảng Quản Trị</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2300b4d8'/><text x='50' y='68' font-size='60' text-anchor='middle'>🏸</text></svg>">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -30,7 +31,7 @@
 
   <!-- ================= PIN AUTH MODAL ================= -->
   <div id="pin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center modal-container">
       <div class="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
         <i class="fa-solid fa-lock text-2xl"></i>
       </div>
@@ -70,57 +71,37 @@
   <!-- ================= ADMIN CONTENT (Hidden until authenticated) ================= -->
   <div id="admin-app" class="hidden flex-grow flex flex-col">
     
-    <!-- Top Admin Bar -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-        
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-            <i class="fa-solid fa-screwdriver-wrench"></i>
-          </div>
-          <div>
-            <h1 class="font-bold text-sm sm:text-base text-white flex items-center gap-2">
-              BẢNG QUẢN TRỊ GIẢI ĐẤU
-              <span id="db-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 font-mono">
-                Checking...
-              </span>
-            </h1>
-            <p class="text-xs text-slate-400">Quản lý tỷ số, 10 đội hình, lịch thi đấu & thể thức</p>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <button id="admin-btn-qr" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1.5" title="Mã QR Giải Đấu">
-            <i class="fa-solid fa-qrcode"></i>
-            <span class="hidden sm:inline">Mã QR</span>
+    <!-- Top Admin Bar (Compact Tab Bar) -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 py-2">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
+        <!-- Admin Tabs -->
+        <nav class="flex space-x-2 text-[11px] font-bold shrink-0">
+          <button id="admin-tab-scores" class="admin-tab-btn active px-2.5 py-1 rounded-md bg-blue-600 text-white font-bold transition flex items-center gap-1.5 text-[11px]">
+            <i class="fa-solid fa-scoreboard"></i> Nhập Tỷ Số (52 Trận)
           </button>
-          <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition flex items-center gap-1.5">
+          <button id="admin-tab-teams" class="admin-tab-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5 text-[11px]">
+            <i class="fa-solid fa-users"></i> Đội Hình & VĐV (10 Đội)
+          </button>
+          <button id="admin-tab-schedule" class="admin-tab-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5 text-[11px]">
+            <i class="fa-solid fa-clock"></i> Lịch & Sân Đấu
+          </button>
+          <button id="admin-tab-settings" class="admin-tab-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5 text-[11px]">
+            <i class="fa-solid fa-sliders"></i> Cài Đặt & Thể Thức
+          </button>
+        </nav>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2 shrink-0">
+          <a href="index.html" target="_blank" class="px-2.5 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 text-[11px] font-semibold transition flex items-center gap-1.5">
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            <span class="hidden sm:inline">Xem Live</span>
+            <span class="hidden sm:inline">Xem Trực Tiếp</span>
           </a>
-          <button id="btn-lock" class="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5">
+          <button id="btn-lock" class="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition flex items-center gap-1.5">
             <i class="fa-solid fa-lock"></i>
             <span class="hidden sm:inline">Khóa</span>
           </button>
         </div>
-
       </div>
-
-      <!-- Admin Tabs -->
-      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 overflow-x-auto pb-2 text-xs font-medium border-t border-slate-700/50 pt-2">
-        <button id="admin-tab-scores" class="admin-tab-btn active px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold transition flex items-center gap-1.5">
-          <i class="fa-solid fa-scoreboard"></i> Nhập Tỷ Số (52 Trận)
-        </button>
-        <button id="admin-tab-teams" class="admin-tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-users"></i> Đội Hình & VĐV (10 Đội)
-        </button>
-        <button id="admin-tab-schedule" class="admin-tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-clock"></i> Lịch & Sân Đấu
-        </button>
-        <button id="admin-tab-settings" class="admin-tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-sliders"></i> Cài Đặt & Thể Thức
-        </button>
-      </nav>
     </header>
 
     <!-- Main Admin Container -->
@@ -130,22 +111,22 @@
       <section id="admin-section-scores" class="admin-content space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
           <div>
-            <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <h2 class="text-[11px] font-bold text-white flex items-center gap-2">
               <span class="w-2 h-5 bg-blue-500 rounded-full inline-block"></span>
               Bảng Nhập Tỷ Số Trực Tiếp Nhanh Gọn
             </h2>
-            <p class="text-xs text-slate-400">Gõ điểm số trực tiếp trên từng dòng trận đấu và bấm [Lưu], hoặc bấm icon sửa để mở modal chi tiết.</p>
+            <p class="text-[11px] text-slate-400">Gõ điểm số trực tiếp trên từng dòng trận đấu và bấm [Lưu], hoặc bấm icon sửa để mở modal chi tiết.</p>
           </div>
           
           <div class="flex flex-wrap items-center gap-2">
             <div class="relative min-w-[180px]">
-              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" id="admin-search-input" placeholder="Tìm trận/Đội/VĐV..." class="w-full bg-slate-900 border border-slate-700 rounded-lg text-xs py-1.5 pl-8 pr-3 text-slate-200 focus:outline-none focus:border-blue-500">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+              <input type="text" id="admin-search-input" placeholder="Tìm trận/Đội/VĐV..." class="w-full bg-slate-900 border border-slate-700 rounded-lg text-[11px] py-1.5 pl-8 pr-3 text-slate-200 focus:outline-none focus:border-blue-500">
             </div>
 
-            <select id="score-filter-stage" class="bg-slate-900 border border-slate-700 rounded-lg text-xs py-1.5 px-3 text-slate-200 focus:outline-none">
+            <select id="score-filter-stage" class="bg-slate-900 border border-slate-700 rounded-lg text-[11px] py-1.5 px-3 text-slate-200 focus:outline-none">
               <option value="all">Tất cả các trận (52)</option>
-              <option value="knockout">Playoffs Knockout (M41 - M52)</option>
+              <option value="knockout">Vòng Knockout (M41 - M52)</option>
               <option value="court-1">Sân 1</option>
               <option value="court-2">Sân 2</option>
               <option value="court-3">Sân 3</option>
@@ -164,11 +145,11 @@
       <!-- SUB-TAB 2: QUẢN LÝ ĐỘI HÌNH & VĐV -->
       <section id="admin-section-teams" class="admin-content hidden space-y-6">
         <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
-          <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <h2 class="text-[11px] font-bold text-white flex items-center gap-2">
             <span class="w-2 h-5 bg-emerald-500 rounded-full inline-block"></span>
             Chỉnh Sửa Thông Tin 10 Đội & VĐV
           </h2>
-          <p class="text-xs text-slate-400 mt-1">
+          <p class="text-[11px] text-slate-400 mt-1">
             Chỉnh sửa trực tiếp tên đội hoặc thay đổi tên 3 VĐV nếu có nhầm lẫn chính tả hoặc đổi người đột xuất. Dữ liệu sẽ cập nhật ngay lập tức lên Database!
           </p>
         </div>
@@ -181,11 +162,11 @@
       <!-- SUB-TAB 3: CHỈNH SỬA LỊCH & SÂN ĐẤU -->
       <section id="admin-section-schedule" class="admin-content hidden space-y-6">
         <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
-          <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <h2 class="text-[11px] font-bold text-white flex items-center gap-2">
             <span class="w-2 h-5 bg-purple-500 rounded-full inline-block"></span>
             Điều Chỉnh Giờ Thi Đấu & Sân Đấu
           </h2>
-          <p class="text-xs text-slate-400 mt-1">
+          <p class="text-[11px] text-slate-400 mt-1">
             Thay đổi sân (Sân 1, Sân 2, Sân 3) hoặc giờ thi đấu thực tế tại nhà thi đấu khi có độ trễ.
           </p>
         </div>
@@ -207,21 +188,6 @@
             </h3>
             
             <form id="form-settings" class="space-y-4 text-xs">
-              <div>
-                <label class="block text-slate-300 font-semibold mb-1">Tên Giải Đấu</label>
-                <input type="text" id="setting-tournament-name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
-              </div>
-
-              <div>
-                <label class="block text-slate-300 font-semibold mb-1">Thể Thức Đấu Trận</label>
-                <select id="setting-format" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
-                  <option value="mixed_group21_ko15" selected>Vòng bảng 1 set 21đ • Vòng trong 3 set 15đ (Chuẩn Giải Đấu 2026)</option>
-                  <option value="3_sets_15">Tất cả các trận: 3 set 15 điểm (Thắng 2 set)</option>
-                  <option value="1_set_21">Tất cả các trận: 1 set 21 điểm</option>
-                  <option value="3_sets_21">Tất cả các trận: 3 set 21 điểm (Thắng 2 set)</option>
-                </select>
-              </div>
-
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-slate-300 font-semibold mb-1">Điểm Thắng Trận (BXH)</label>
@@ -253,29 +219,32 @@
             <div class="pt-2 space-y-3">
               <button id="btn-seed-data" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg">
                 <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                Nạp Dữ Liệu Gốc 10 Đội & 52 Trận (Seed Data)
+                Nạp Dữ Liệu Gốc 10 Đội & 52 Trận
               </button>
 
               <button id="btn-simulate-tour" class="w-full py-2.5 px-4 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/30 font-bold text-xs transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-play"></i>
-                Chạy Mô Phỏng Kết Quả Toàn Giải (Demo Tự Động)
+                Chạy Mô Phỏng Kết Quả Toàn Giải (Tự Động)
               </button>
 
               <button id="btn-reset-scores" class="w-full py-2.5 px-4 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/30 font-bold text-xs transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-rotate-left"></i>
-                Reset Điểm Tất Cả Các Trận Về 0-0
+                Đặt Lại Điểm Tất Cả Các Trận Về 0-0
               </button>
             </div>
 
             <!-- Firebase Connection & Live Diagnostics -->
             <div class="mt-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-3">
               <div class="flex items-center justify-between">
-                <div class="font-bold text-xs text-white flex items-center gap-2">
+                <div class="font-bold text-xs text-white flex items-center gap-2 flex-wrap">
                   <span id="live-db-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                   <span id="live-db-title">Đang Kiểm Tra Database...</span>
+                  <span id="db-badge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 font-mono font-bold">
+                    Đang kiểm tra...
+                  </span>
                 </div>
                 <button type="button" id="btn-ping-db" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold border border-slate-700 transition flex items-center gap-1">
-                  <i class="fa-solid fa-signal"></i> Ping Test
+                  <i class="fa-solid fa-signal"></i> Kiểm Tra Kết Nối
                 </button>
               </div>
 
@@ -289,7 +258,7 @@
             </div>
 
             <!-- Cấu hình Firebase Cloud (Lưu an toàn trên trình duyệt / Giấu khỏi GitHub) -->
-            <div class="mt-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-3">
+            <div class="mt-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-3 hidden">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                   <i class="fa-solid fa-shield-halved text-emerald-400"></i> Cấu Hình Bảo Mật (Ẩn Khỏi Git)
@@ -335,7 +304,7 @@
 
   <!-- ================= SCORE INPUT MODAL ================= -->
   <div id="score-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl modal-container">
       <div class="flex items-center justify-between pb-3 border-b border-slate-700">
         <div>
           <span id="modal-match-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
@@ -452,7 +421,7 @@
 
   <!-- ================= QR CODE MODAL ================= -->
   <div id="admin-qr-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center modal-container">
       <div class="flex items-center justify-between pb-3 border-b border-slate-700">
         <h3 class="font-black text-base text-white flex items-center gap-1.5">
           <i class="fa-solid fa-qrcode text-emerald-400"></i> Mã QR Cho Khán Giả & VĐV

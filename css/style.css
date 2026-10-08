@@ -1,6 +1,9 @@
 /* ====================================================================
    CYBERPUNK / E-SPORTS DARK THEME (DARK NAVY & GLOWING CYAN ACCENTS)
    Phù hợp 100% với phong cách giao diện giải đấu cầu lông chuyên nghiệp
+   Tối ưu hoá Responsive Mobile & PC - Typography Uniform 11px:
+   - Tất cả chữ trên toàn hệ thống: 11px
+   - Tiêu đề: in đậm (font-bold / font-black)
    ==================================================================== */
 
 :root {
@@ -17,10 +20,70 @@
   --text-muted: #7e94b2;
 }
 
+/* Base resets & standardized typography */
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body, html, table, td, th, p, span, div, input, select, textarea, button, a,
+h1, h2, h3, h4, h5, h6 {
+  font-size: 11px !important;
+  line-height: 1.4;
+}
+
 body {
   background-color: #070d19 !important;
   color: #e2e8f0 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* All Headings & Title classes are BOLD */
+h1, h2, h3, h4, h5, h6,
+.title-bold,
+.tab-btn,
+.admin-tab-btn,
+.section-title,
+.card-header-title {
+  font-weight: 700 !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #070d19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e314f;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0096c7;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch Scrolling Optimization for Mobile Tables & Containers */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Animations */
@@ -39,20 +102,11 @@ body {
 
 .live-indicator {
   display: inline-block;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   background-color: #10b981;
   border-radius: 50%;
   animation: pulse-live 1.5s infinite ease-in-out;
-}
-
-.live-indicator-red {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  background-color: #f43f5e;
-  border-radius: 50%;
-  animation: pulse-live-red 1.5s infinite ease-in-out;
 }
 
 @keyframes pulse-live-red {
@@ -68,12 +122,21 @@ body {
   }
 }
 
+.live-indicator-red {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #f43f5e;
+  border-radius: 50%;
+  animation: pulse-live-red 1.5s infinite ease-in-out;
+}
+
 /* Score Flash when updated */
 @keyframes score-flash {
   0% {
     background-color: rgba(0, 229, 255, 0.4);
     box-shadow: 0 0 20px rgba(0, 229, 255, 0.8);
-    transform: scale(1.06);
+    transform: scale(1.05);
   }
   100% {
     background-color: transparent;
@@ -85,11 +148,27 @@ body {
   animation: score-flash 1.4s ease-out;
 }
 
-/* Glowing Neon Cyan Pill Buttons */
+/* Glowing Neon Cyan Pill Buttons - 11px compact bold */
+.tab-btn {
+  min-height: 26px !important;
+  padding: 4px 10px !important;
+  touch-action: manipulation;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+.admin-tab-btn {
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
 .tab-pill-cyan-active {
   background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 22px rgba(0, 180, 216, 0.65), 0 0 5px rgba(0, 229, 255, 0.8) !important;
+  box-shadow: 0 0 12px rgba(0, 180, 216, 0.5), 0 0 3px rgba(0, 229, 255, 0.7) !important;
   border: 1px solid rgba(0, 229, 255, 0.6) !important;
 }
 
@@ -111,6 +190,8 @@ body {
   border: 1px solid rgba(0, 229, 255, 0.45);
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.22);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px !important;
+  font-weight: 700 !important;
 }
 
 /* Court card styling */
@@ -126,28 +207,20 @@ body {
   transform: translateY(-2px);
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #070d19;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e314f;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #0096c7;
-}
-
 /* Glass effect for Modals & Nav */
 .glass-panel-dark {
-  background: rgba(12, 21, 36, 0.88);
+  background: rgba(12, 21, 36, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(22, 38, 63, 0.8);
+}
+
+/* Modals Mobile Optimization */
+.modal-container {
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Bracket connection lines */
@@ -187,3 +260,15 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Responsive Table Helper Fixes */
+@media (max-width: 640px) {
+  .modal-container {
+    max-height: 85vh;
+    padding: 1rem;
+  }
+  
+  table th, table td {
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+  }
+}
