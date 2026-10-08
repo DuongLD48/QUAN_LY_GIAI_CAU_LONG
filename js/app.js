@@ -557,38 +557,42 @@ function renderStandings() {
         const namesB = getPlayerNameLines(teamB, m.category);
 
         matchesHtml += `
-          <div class="py-2.5 px-2.5 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-xs space-y-1.5" data-match-id="${m.id}">
-            <!-- Dòng 1: Số trận, Sân, Giờ, Trạng thái & Tỷ số -->
-            <div class="flex items-center justify-between border-b border-[#142338]/40 pb-1.5">
-              <div class="flex items-center gap-1.5 text-[11px] font-mono">
+          <div class="py-2 px-2.5 hover:bg-[#091120] rounded-xl transition border-b border-[#121f33]/60 text-[11px] space-y-1" data-match-id="${m.id}">
+            <!-- Dòng 1: #1 Sân 1 07:30 ---------------- [Đang đấu] -->
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono pb-0.5 border-b border-[#142338]/30">
+              <div class="flex items-center gap-1.5">
                 <span class="text-slate-500 font-bold">#${m.matchNo || m.id.replace(/\D/g,'')}</span>
-                <span class="px-1.5 py-0.5 rounded bg-[#091526] text-cyan-400 border border-[#162947] text-[10px]">Sân ${m.court} • ${m.time}</span>
-                ${statusBadgeText}
+                <span class="text-cyan-400 font-medium">Sân ${m.court} • ${m.time}</span>
               </div>
-              <div class="px-2.5 py-0.5 rounded-md font-mono font-black text-xs score-pill-cyan tracking-wider">
-                ${scoreBadge}
+              <div>
+                ${statusBadgeText}
               </div>
             </div>
 
-            <!-- Dòng 2: Đội A vs Đội B (Hiển thị 100% đầy đủ tên các VĐV không bị cắt dòng) -->
-            <div class="grid grid-cols-2 gap-2 sm:gap-3 items-start text-xs pt-0.5">
-              <!-- Đội A -->
-              <div class="flex items-start gap-1.5 min-w-0">
-                <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono mt-0.5">${teamA.code}</span>
-                <div class="flex flex-col leading-snug break-words min-w-0">
-                  <span class="font-bold text-slate-200 text-xs sm:text-xs">${namesA.line1}</span>
-                  ${namesA.line2 ? `<span class="font-medium text-slate-400 text-[11px] mt-0.5">${namesA.line2}</span>` : ''}
-                </div>
+            <!-- Dòng 2: X1 Toàn - Trung cute | Ngân ---------------- 15 -->
+            <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamA ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamA.code}</span>
+                <span class="text-[11px] font-medium leading-tight text-white break-words">
+                  ${namesA.line1}${namesA.line2 ? ` <span class="text-slate-400 font-normal">| ${namesA.line2}</span>` : ''}
+                </span>
               </div>
+              <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamA ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+                ${isCompleted || isLive ? s1.a : '-'}
+              </span>
+            </div>
 
-              <!-- Đội B -->
-              <div class="flex items-start justify-end gap-1.5 min-w-0 text-right">
-                <div class="flex flex-col leading-snug text-right break-words min-w-0">
-                  <span class="font-bold text-slate-200 text-xs sm:text-xs">${namesB.line1}</span>
-                  ${namesB.line2 ? `<span class="font-medium text-slate-400 text-[11px] mt-0.5">${namesB.line2}</span>` : ''}
-                </div>
-                <span class="px-1.5 py-0.5 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-xs font-black shrink-0 font-mono mt-0.5">${teamB.code}</span>
+            <!-- Dòng 3: X2 Gia - Bảo bối | Trúc ---------------- 10 -->
+            <div class="flex items-center justify-between gap-2 py-0.5 ${m.winner === m.teamB ? 'text-cyan-300 font-bold' : 'text-slate-200'}">
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <span class="px-1.5 py-0.2 rounded bg-[#101e33] text-cyan-300 border border-[#1d3252] text-[10px] font-black shrink-0 font-mono">${teamB.code}</span>
+                <span class="text-[11px] font-medium leading-tight text-white break-words">
+                  ${namesB.line1}${namesB.line2 ? ` <span class="text-slate-400 font-normal">| ${namesB.line2}</span>` : ''}
+                </span>
               </div>
+              <span class="font-mono font-black text-xs px-2 py-0.5 rounded ${isCompleted || isLive ? (m.winner === m.teamB ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'bg-[#091120] text-slate-300') : 'text-slate-500'} shrink-0">
+                ${isCompleted || isLive ? s1.b : '-'}
+              </span>
             </div>
           </div>
         `;
