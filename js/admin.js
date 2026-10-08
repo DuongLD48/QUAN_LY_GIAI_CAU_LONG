@@ -550,16 +550,31 @@ async function saveInlineMatchScore(matchId) {
     match.winner = (status === 'completed' && scoreA !== scoreB) ? (scoreA > scoreB ? match.teamA : match.teamB) : null;
   }
 
+function ensureDbConnected() {
+  if (typeof window.isFirebaseConfigured === 'function' && !window.isFirebaseConfigured()) {
+    showToast("⚠️ Chưa kết nối Firebase Database!", "error");
+    alert("⚠️ CHƯA KẾT NỐI DATABASE CLOUD!\n\nHệ thống đang ở chế độ chờ. Vui lòng dán Firebase API Key & Database URL trong mục 'Cấu Hình Bảo Mật (Ẩn Khỏi Git)' ở Tab Cài Đặt trước khi thay đổi dữ liệu.");
+    return false;
+  }
+  return true;
+}
+
   // Cập nhật Database Realtime
-  const updateFn = window.updateMatchScore || (typeof updateMatchScore !== 'undefined' ? updateMatchScore : null);
-  if (typeof updateFn === 'function') {
-    await updateFn(matchId, {
-      status: match.status,
-      scores: match.scores,
-      setsWon: match.setsWon,
-      winner: match.winner
-    });
-    showToast(`Đã lưu Trận #${match.matchNo || matchId} [${scoreA} - ${scoreB}]!`);
+  if (!ensureDbConnected()) return;
+  try {
+    const updateFn = window.updateMatchScore || (typeof updateMatchScore !== 'undefined' ? updateMatchScore : null);
+    if (typeof updateFn === 'function') {
+      await updateFn(matchId, {
+        status: match.status,
+        scores: match.scores,
+        setsWon: match.setsWon,
+        winner: match.winner
+      });
+      showToast(`Đã lưu Trận #${match.matchNo || matchId} [${scoreA} - ${scoreB}]!`);
+    }
+  } catch (err) {
+    showToast(`❌ Không thể lưu tỷ số: ${err.message}`, "error");
+    alert(`❌ Lỗi kết nối Database: ${err.message}`);
   }
 }
 
@@ -740,13 +755,16 @@ function setupScoreModal() {
         winner: winner
       };
 
-      await updateMatchScore(currentEditingMatchId, updateData);
-
-      // Tự động kiểm tra cập nhật Knockout
-      await checkAndUpdateKnockoutBrackets();
-
-      modal.classList.add('hidden');
-      showToast(`Đã lưu kết quả Trận ${currentEditingMatchId} thành công!`);
+      if (!ensureDbConnected()) return;
+      try {
+        await updateMatchScore(currentEditingMatchId, updateData);
+        await checkAndUpdateKnockoutBrackets();
+        modal.classList.add('hidden');
+        showToast(`Đã lưu kết quả Trận ${currentEditingMatchId} thành công!`);
+      } catch (err) {
+        showToast(`❌ Không thể lưu tỷ số: ${err.message}`, "error");
+        alert(`❌ Lỗi kết nối Database: ${err.message}`);
+      }
     });
   }
 }
@@ -950,19 +968,25 @@ async function handleSaveTeam(teamId) {
   const menName = (m0 && m1) ? `${m0} - ${m1}` : (m0 || m1);
   const mixedName = (m0 && m1 && m2) ? `${m0}/${m1}-${m2}` : autoName;
 
-  const updateFn = window.updateTeam || updateTeam;
-  if (typeof updateFn === 'function') {
-    await updateFn(teamId, {
-      name: autoName,
-      menName: menName,
-      mixedName: mixedName,
-      members: [
-        { name: m0, role: "A" },
-        { name: m1, role: "a" },
-        { name: m2, role: "b" }
-      ]
-    });
-    showToast(`Đã cập nhật Đội ${teamId}: "${autoName}"!`);
+  if (!ensureDbConnected()) return;
+  try {
+    const updateFn = window.updateTeam || updateTeam;
+    if (typeof updateFn === 'function') {
+      await updateFn(teamId, {
+        name: autoName,
+        menName: menName,
+        mixedName: mixedName,
+        members: [
+          { name: m0, role: "A" },
+          { name: m1, role: "a" },
+          { name: m2, role: "b" }
+        ]
+      });
+      showToast(`Đã cập nhật Đội ${teamId}: "${autoName}"!`);
+    }
+  } catch (err) {
+    showToast(`❌ Không thể lưu thông tin đội: ${err.message}`, "error");
+    alert(`❌ Lỗi kết nối Database: ${err.message}`);
   }
 }
 
@@ -1072,8 +1096,14 @@ function renderAdminSchedule() {
       if (teamASelect) updateData.teamA = teamASelect.value;
       if (teamBSelect) updateData.teamB = teamBSelect.value;
 
-      await updateMatchSchedule(matchId, updateData);
-      showToast(`Đã lưu lịch đấu trận ${matchId}!`);
+      if (!ensureDbConnected()) return;
+      try {
+        await updateMatchSchedule(matchId, updateData);
+        showToast(`Đã lưu lịch đấu trận ${matchId}!`);
+      } catch (err) {
+        showToast(`❌ Không thể lưu lịch đấu: ${err.message}`, "error");
+        alert(`❌ Lỗi kết nối Database: ${err.message}`);
+      }
     });
   });
 }
@@ -1100,6 +1130,7 @@ function setupSettingsForm() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!ensureDbConnected()) return;
     const tournamentName = document.getElementById('setting-tournament-name').value.trim();
     const format = document.getElementById('setting-format').value;
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
@@ -1135,23 +1166,28 @@ function setupSettingsForm() {
       knockoutWinSetsRequired = 2;
     }
 
-    await updateSettings({
-      tournamentName,
-      format,
-      groupPointsPerSet,
-      groupMaxSets,
-      groupWinSetsRequired,
-      knockoutPointsPerSet,
-      knockoutMaxSets,
-      knockoutWinSetsRequired,
-      pointsPerSet: knockoutPointsPerSet,
-      maxSets: knockoutMaxSets,
-      winSetsRequired: knockoutWinSetsRequired,
-      pointsForWin,
-      adminPin
-    });
+    try {
+      await updateSettings({
+        tournamentName,
+        format,
+        groupPointsPerSet,
+        groupMaxSets,
+        groupWinSetsRequired,
+        knockoutPointsPerSet,
+        knockoutMaxSets,
+        knockoutWinSetsRequired,
+        pointsPerSet: knockoutPointsPerSet,
+        maxSets: knockoutMaxSets,
+        winSetsRequired: knockoutWinSetsRequired,
+        pointsForWin,
+        adminPin
+      });
 
-    showToast("Đã lưu cài đặt thể thức thành công!");
+      showToast("Đã lưu cài đặt thể thức thành công!");
+    } catch (err) {
+      showToast(`❌ Không thể lưu cài đặt: ${err.message}`, "error");
+      alert(`❌ Lỗi kết nối Database: ${err.message}`);
+    }
   });
 }
 
@@ -1165,125 +1201,144 @@ function setupDatabaseActionButtons() {
 
   if (btnSeed) {
     btnSeed.addEventListener('click', async () => {
+      if (!ensureDbConnected()) return;
       const confirmSeed = confirm("Bạn có chắc chắn muốn nạp lại dữ liệu gốc 10 đội & 52 trận lên Database? Tỷ số các trận sẽ được đặt lại ban đầu.");
       if (confirmSeed) {
-        await seedDatabase();
-        showToast("Đã nạp thành công 10 Đội & 52 Trận lên Database!");
+        try {
+          await seedDatabase();
+          showToast("Đã nạp thành công 10 Đội & 52 Trận lên Database!");
+        } catch (err) {
+          showToast(`❌ Lỗi nạp dữ liệu: ${err.message}`, "error");
+          alert(`❌ Lỗi kết nối Database: ${err.message}`);
+        }
       }
     });
   }
 
   if (btnReset) {
     btnReset.addEventListener('click', async () => {
+      if (!ensureDbConnected()) return;
       const confirmReset = confirm("Bạn có chắc chắn muốn reset tỷ số tất cả 52 trận về 0-0?");
       if (confirmReset) {
-        const matches = tournamentData.matches || {};
-        for (const [id, m] of Object.entries(matches)) {
-          await updateMatchScore(id, {
-            scores: [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
-            setsWon: { a: 0, b: 0 },
-            winner: null,
-            status: "scheduled"
-          });
+        try {
+          const matches = tournamentData.matches || {};
+          for (const [id, m] of Object.entries(matches)) {
+            await updateMatchScore(id, {
+              scores: [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+              setsWon: { a: 0, b: 0 },
+              winner: null,
+              status: "scheduled"
+            });
+          }
+          showToast("Đã reset tỷ số toàn bộ các trận!");
+        } catch (err) {
+          showToast(`❌ Lỗi reset tỷ số: ${err.message}`, "error");
+          alert(`❌ Lỗi kết nối Database: ${err.message}`);
         }
-        showToast("Đã reset tỷ số toàn bộ các trận!");
       }
     });
   }
 
   if (btnSimulate) {
     btnSimulate.addEventListener('click', async () => {
+      if (!ensureDbConnected()) return;
       const confirmSim = confirm("Bạn có muốn chạy mô phỏng toàn bộ giải đấu (40 trận Vòng bảng + 12 trận Vòng Knockout Playoffs) để kiểm thử dữ liệu?");
       if (!confirmSim) return;
 
-      btnSimulate.disabled = true;
-      btnSimulate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang mô phỏng...`;
-      showToast("Đang mô phỏng 40 trận Vòng bảng...", "info");
+      try {
+        btnSimulate.disabled = true;
+        btnSimulate.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang mô phỏng...`;
+        showToast("Đang mô phỏng 40 trận Vòng bảng...", "info");
 
-      const matches = tournamentData.matches || {};
-      const groupPts = Number(tournamentData.settings?.groupPointsPerSet) || 15;
-      const koPts = Number(tournamentData.settings?.knockoutPointsPerSet) || 15;
+        const matches = tournamentData.matches || {};
+        const groupPts = Number(tournamentData.settings?.groupPointsPerSet) || 15;
+        const koPts = Number(tournamentData.settings?.knockoutPointsPerSet) || 15;
 
-      // 1. Mô phỏng 40 trận Vòng Bảng (M01 - M40: 1 set chạm 15)
-      for (const [id, m] of Object.entries(matches)) {
-        if (m.stage === 'group') {
-          const isAWin = Math.random() > 0.45;
-          const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
-          const s1a = isAWin ? groupPts : loserPts;
-          const s1b = isAWin ? loserPts : groupPts;
-          const winner = isAWin ? m.teamA : m.teamB;
+        // 1. Mô phỏng 40 trận Vòng Bảng (M01 - M40: 1 set chạm 15)
+        for (const [id, m] of Object.entries(matches)) {
+          if (m.stage === 'group') {
+            const isAWin = Math.random() > 0.45;
+            const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
+            const s1a = isAWin ? groupPts : loserPts;
+            const s1b = isAWin ? loserPts : groupPts;
+            const winner = isAWin ? m.teamA : m.teamB;
 
-          await updateMatchScore(id, {
-            scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
-            setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
-            winner,
-            status: 'completed'
-          });
-        }
-      }
-
-      showToast("Đang cập nhật Bán Kết Đồng Đội...", "info");
-      await checkAndUpdateKnockoutBrackets();
-      await new Promise(r => setTimeout(r, 400));
-
-      // 2. Mô phỏng 6 trận Bán Kết (M41 - M46: 1 set chạm 15)
-      const bkMatchIds = ['M41', 'M42', 'M43', 'M44', 'M45', 'M46'];
-      for (const id of bkMatchIds) {
-        const m = tournamentData.matches[id];
-        if (m && m.teamA && m.teamB) {
-          const isAWin = Math.random() > 0.4;
-          const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
-          const s1a = isAWin ? koPts : loserPts;
-          const s1b = isAWin ? loserPts : koPts;
-          const winner = isAWin ? m.teamA : m.teamB;
-
-          await updateMatchScore(id, {
-            scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
-            setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
-            winner,
-            status: 'completed'
-          });
-        }
-      }
-
-      showToast("Đang cập nhật Chung Kết & Tranh Hạng Ba...", "info");
-      await checkAndUpdateKnockoutBrackets();
-      await new Promise(r => setTimeout(r, 400));
-
-      // 3. Mô phỏng 6 trận Chung Kết & Tranh Hạng Ba (M47 - M52: 3 set chạm 15, thắng 2)
-      const finalMatchIds = ['M47', 'M48', 'M49', 'M50', 'M51', 'M52'];
-      for (const id of finalMatchIds) {
-        const m = tournamentData.matches[id];
-        if (m && m.teamA && m.teamB) {
-          const isAWin = Math.random() > 0.5;
-          const isThreeSets = Math.random() > 0.5;
-          const winner = isAWin ? m.teamA : m.teamB;
-
-          let scores, setsWon;
-          if (isThreeSets) {
-            scores = isAWin 
-              ? [{ a: koPts, b: koPts - 3 }, { a: koPts - 2, b: koPts }, { a: koPts, b: koPts - 4 }]
-              : [{ a: koPts - 3, b: koPts }, { a: koPts, b: koPts - 2 }, { a: koPts - 4, b: koPts }];
-            setsWon = isAWin ? { a: 2, b: 1 } : { a: 1, b: 2 };
-          } else {
-            scores = isAWin 
-              ? [{ a: koPts, b: koPts - 4 }, { a: koPts, b: koPts - 2 }, { a: 0, b: 0 }]
-              : [{ a: koPts - 4, b: koPts }, { a: koPts - 2, b: koPts }, { a: 0, b: 0 }];
-            setsWon = isAWin ? { a: 2, b: 0 } : { a: 0, b: 2 };
+            await updateMatchScore(id, {
+              scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+              setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
+              winner,
+              status: 'completed'
+            });
           }
-
-          await updateMatchScore(id, {
-            scores,
-            setsWon,
-            winner,
-            status: 'completed'
-          });
         }
-      }
 
-      btnSimulate.disabled = false;
-      btnSimulate.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Mô Phỏng Kết Quả Toàn Giải`;
-      showToast("Mô phỏng toàn bộ 52 trận hoàn tất! Mời kiểm tra Bảng Điểm & Sơ Đồ Cây.");
+        showToast("Đang cập nhật Bán Kết Đồng Đội...", "info");
+        await checkAndUpdateKnockoutBrackets();
+        await new Promise(r => setTimeout(r, 400));
+
+        // 2. Mô phỏng 6 trận Bán Kết (M41 - M46: 1 set chạm 15)
+        const bkMatchIds = ['M41', 'M42', 'M43', 'M44', 'M45', 'M46'];
+        for (const id of bkMatchIds) {
+          const m = tournamentData.matches[id];
+          if (m && m.teamA && m.teamB) {
+            const isAWin = Math.random() > 0.4;
+            const loserPts = Math.floor(Math.random() * 7) + 8; // 8 - 14
+            const s1a = isAWin ? koPts : loserPts;
+            const s1b = isAWin ? loserPts : koPts;
+            const winner = isAWin ? m.teamA : m.teamB;
+
+            await updateMatchScore(id, {
+              scores: [{ a: s1a, b: s1b }, { a: 0, b: 0 }, { a: 0, b: 0 }],
+              setsWon: { a: isAWin ? 1 : 0, b: isAWin ? 0 : 1 },
+              winner,
+              status: 'completed'
+            });
+          }
+        }
+
+        showToast("Đang cập nhật Chung Kết & Tranh Hạng Ba...", "info");
+        await checkAndUpdateKnockoutBrackets();
+        await new Promise(r => setTimeout(r, 400));
+
+        // 3. Mô phỏng 6 trận Chung Kết & Tranh Hạng Ba (M47 - M52: 3 set chạm 15, thắng 2)
+        const finalMatchIds = ['M47', 'M48', 'M49', 'M50', 'M51', 'M52'];
+        for (const id of finalMatchIds) {
+          const m = tournamentData.matches[id];
+          if (m && m.teamA && m.teamB) {
+            const isAWin = Math.random() > 0.5;
+            const isThreeSets = Math.random() > 0.5;
+            const winner = isAWin ? m.teamA : m.teamB;
+
+            let scores, setsWon;
+            if (isThreeSets) {
+              scores = isAWin 
+                ? [{ a: koPts, b: koPts - 3 }, { a: koPts - 2, b: koPts }, { a: koPts, b: koPts - 4 }]
+                : [{ a: koPts - 3, b: koPts }, { a: koPts, b: koPts - 2 }, { a: koPts - 4, b: koPts }];
+              setsWon = isAWin ? { a: 2, b: 1 } : { a: 1, b: 2 };
+            } else {
+              scores = isAWin 
+                ? [{ a: koPts, b: koPts - 4 }, { a: koPts, b: koPts - 2 }, { a: 0, b: 0 }]
+                : [{ a: koPts - 4, b: koPts }, { a: koPts - 2, b: koPts }, { a: 0, b: 0 }];
+              setsWon = isAWin ? { a: 2, b: 0 } : { a: 0, b: 2 };
+            }
+
+            await updateMatchScore(id, {
+              scores,
+              setsWon,
+              winner,
+              status: 'completed'
+            });
+          }
+        }
+
+        showToast("Mô phỏng toàn bộ 52 trận hoàn tất! Mời kiểm tra Bảng Điểm & Sơ Đồ Cây.");
+      } catch (err) {
+        showToast(`❌ Lỗi mô phỏng: ${err.message}`, "error");
+        alert(`❌ Lỗi kết nối Database: ${err.message}`);
+      } finally {
+        btnSimulate.disabled = false;
+        btnSimulate.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Mô Phỏng Kết Quả Toàn Giải`;
+      }
     });
   }
 }
