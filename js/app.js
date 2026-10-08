@@ -602,7 +602,7 @@ function renderStandings() {
       });
     }
 
-    const isAccordionOpen = searchQuery ? true : (groupAccordionState[accordionId] !== false);
+    const isAccordionOpen = searchQuery ? true : (groupAccordionState[accordionId] === true);
 
     html += `
       <div class="space-y-5 sm:space-y-6">

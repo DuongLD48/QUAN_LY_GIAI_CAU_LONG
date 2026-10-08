@@ -1010,13 +1010,15 @@ function renderAdminSchedule() {
   const teams = Object.values(tournamentData.teams || {});
 
   let html = `
-    <div class="overflow-x-auto">
+    <!-- DESKTOP TABLE VIEW (md+) -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="w-full text-xs text-left text-slate-300">
         <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
           <tr>
             <th class="py-3 px-3">Trận</th>
             <th class="py-3 px-3">Giờ Đấu</th>
             <th class="py-3 px-3">Sân</th>
+            <th class="py-3 px-3">Nội Dung</th>
             <th class="py-3 px-3">Cặp Đấu</th>
             <th class="py-3 px-3">Trạng Thái</th>
             <th class="py-3 px-3 text-right">Thao Tác</th>
@@ -1035,6 +1037,10 @@ function renderAdminSchedule() {
     const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
     const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
 
+    const catBadge = m.category === 'mixed'
+      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam Nữ</span>'
+      : '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam</span>';
+
     html += `
       <tr class="hover:bg-slate-700/30 transition schedule-row" data-match-id="${m.id}">
         <td class="py-2.5 px-3 font-bold text-white font-mono">${matchIdLabel}</td>
@@ -1049,6 +1055,9 @@ function renderAdminSchedule() {
           </select>
         </td>
         <td class="py-2.5 px-3">
+          ${catBadge}
+        </td>
+        <td class="py-2.5 px-3">
           ${isKnockout ? `
             <div class="flex items-center gap-1.5 font-bold">
               <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-mono text-xs shrink-0">${teamAObj.code}</span>
@@ -1060,11 +1069,17 @@ function renderAdminSchedule() {
           ` : `
             <div class="flex items-center gap-1.5">
               <select class="select-team-a bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-medium max-w-[160px] focus:outline-none">
-                ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamA ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
+                ${teams.map(t => {
+                  const labelName = (m.category === 'men' && t.menName) ? t.menName : t.name;
+                  return `<option value="${t.id}" ${t.id === m.teamA ? 'selected' : ''}>${t.code} - ${labelName}</option>`;
+                }).join('')}
               </select>
               <span class="text-slate-400 font-bold">vs</span>
               <select class="select-team-b bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-medium max-w-[160px] focus:outline-none">
-                ${teams.map(t => `<option value="${t.id}" ${t.id === m.teamB ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
+                ${teams.map(t => {
+                  const labelName = (m.category === 'men' && t.menName) ? t.menName : t.name;
+                  return `<option value="${t.id}" ${t.id === m.teamB ? 'selected' : ''}>${t.code} - ${labelName}</option>`;
+                }).join('')}
               </select>
             </div>
           `}
@@ -1086,6 +1101,100 @@ function renderAdminSchedule() {
   });
 
   html += `</tbody></table></div>`;
+
+  // MOBILE CARD VIEW (< md)
+  html += `<div class="md:hidden p-3 space-y-3">`;
+  matches.forEach(m => {
+    const isKnockout = m.stage !== 'group';
+    const matchNum = m.matchNo || (m.id ? String(m.id).replace(/\D/g, '') : '') || '?';
+    const matchIdLabel = `#${matchNum}`;
+    const timeVal = m.time || '12:00';
+    const courtVal = Number(m.court) || 1;
+
+    const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
+    const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+
+    const catBadge = m.category === 'mixed'
+      ? '<span class="text-[10px] text-purple-300 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-800/50 font-semibold inline-block whitespace-nowrap">Nam Nữ</span>'
+      : '<span class="text-[10px] text-blue-300 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/50 font-semibold inline-block whitespace-nowrap">Đôi Nam</span>';
+
+    html += `
+      <div class="bg-slate-900/90 rounded-xl border border-slate-700/80 p-3 space-y-2.5 schedule-row shadow-sm" data-match-id="${m.id}">
+        <!-- Dòng 1: Mã trận, Nội dung & Trạng thái -->
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-2 gap-2">
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-white text-xs bg-slate-800 px-2 py-0.5 rounded font-mono border border-slate-700">${matchIdLabel}</span>
+            ${catBadge}
+          </div>
+          <select class="select-match-status bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-white font-bold text-xs focus:outline-none">
+            <option value="scheduled" ${m.status === 'scheduled' ? 'selected' : ''}>Chưa đấu</option>
+            <option value="playing" ${m.status === 'playing' ? 'selected' : ''}>Đang đấu</option>
+            <option value="completed" ${m.status === 'completed' ? 'selected' : ''}>Đã xong</option>
+          </select>
+        </div>
+
+        <!-- Dòng 2: Giờ đấu & Chọn Sân -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-400 font-semibold block mb-1">Giờ Thi Đấu</label>
+            <input type="text" class="input-match-time w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-center text-white font-mono font-bold text-xs focus:outline-none focus:border-blue-500" value="${timeVal}" placeholder="HH:MM">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 font-semibold block mb-1">Chọn Sân</label>
+            <select class="select-match-court w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-blue-500">
+              <option value="1" ${courtVal === 1 ? 'selected' : ''}>Sân 1</option>
+              <option value="2" ${courtVal === 2 ? 'selected' : ''}>Sân 2</option>
+              <option value="3" ${courtVal === 3 ? 'selected' : ''}>Sân 3</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dòng 3: Cặp Đấu -->
+        <div>
+          <label class="text-[10px] text-slate-400 font-semibold block mb-1">Cặp Đấu Thi Đấu</label>
+          ${isKnockout ? `
+            <div class="flex items-center gap-1.5 font-bold bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono text-xs shrink-0">${teamAObj.code}</span>
+              <span class="text-white text-xs truncate flex-1 min-w-0">${teamAObj.name}</span>
+              <span class="text-slate-500 font-normal text-xs px-1 shrink-0">vs</span>
+              <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono text-xs shrink-0">${teamBObj.code}</span>
+              <span class="text-white text-xs truncate flex-1 min-w-0 text-right">${teamBObj.name}</span>
+            </div>
+          ` : `
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-400 w-8 font-bold">Đội A:</span>
+                <select class="select-team-a flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs font-medium focus:outline-none min-w-0">
+                  ${teams.map(t => {
+                    const labelName = (m.category === 'men' && t.menName) ? t.menName : t.name;
+                    return `<option value="${t.id}" ${t.id === m.teamA ? 'selected' : ''}>${t.code} - ${labelName}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-400 w-8 font-bold">Đội B:</span>
+                <select class="select-team-b flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs font-medium focus:outline-none min-w-0">
+                  ${teams.map(t => {
+                    const labelName = (m.category === 'men' && t.menName) ? t.menName : t.name;
+                    return `<option value="${t.id}" ${t.id === m.teamB ? 'selected' : ''}>${t.code} - ${labelName}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <!-- Dòng 4: Nút Lưu -->
+        <button class="btn-save-schedule w-full py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5" data-match-id="${m.id}">
+          <i class="fa-solid fa-floppy-disk text-xs"></i>
+          <span>Lưu Thay Đổi Trận #${matchNum}</span>
+        </button>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  container.innerHTML = html;
   container.innerHTML = html;
 
   container.querySelectorAll('.btn-save-schedule').forEach(btn => {

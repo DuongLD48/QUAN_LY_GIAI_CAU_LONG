@@ -46,6 +46,11 @@ body {
   min-height: 100vh;
 }
 
+/* Touch & Mobile Input Optimization */
+input, select, textarea, button {
+  touch-action: manipulation;
+}
+
 /* All Headings & Title classes are BOLD */
 h1, h2, h3, h4, h5, h6,
 .title-bold,
