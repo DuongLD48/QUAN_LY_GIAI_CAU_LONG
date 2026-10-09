@@ -123,85 +123,113 @@ function saveLocalData(data) {
 }
 
 let isCloudConnected = false;
+let initDbPromise = null;
+let latestData = null;
+let firebaseDataLoaded = false;
 
 async function initDatabaseService() {
-  const isRealFirebase = isFirebaseConfigured();
+  if (initDbPromise) return initDbPromise;
 
-  if (isRealFirebase && typeof window !== 'undefined' && typeof window.firebase !== 'undefined') {
-    try {
-      if (!window.firebase.apps.length) {
-        firebaseApp = window.firebase.initializeApp(firebaseConfig);
-      } else {
-        firebaseApp = window.firebase.app();
-      }
-      firebaseDb = window.firebase.database();
-      
-      // Theo dõi trạng thái kết nối Cloud Realtime
-      const connectedRef = firebaseDb.ref('.info/connected');
-      connectedRef.on('value', (snap) => {
-        isCloudConnected = snap.val() === true;
-        if (isCloudConnected) {
-          console.log("🔥 Đã kết nối Cloud Firebase Realtime Database!");
+  initDbPromise = (async () => {
+    const isRealFirebase = isFirebaseConfigured();
+
+    if (isRealFirebase && typeof window !== 'undefined' && typeof window.firebase !== 'undefined') {
+      try {
+        if (!window.firebase.apps.length) {
+          firebaseApp = window.firebase.initializeApp(firebaseConfig);
         } else {
-          console.log("⚠️ Mất kết nối mạng hoặc đang kết nối lại Firebase...");
+          firebaseApp = window.firebase.app();
         }
+        firebaseDb = window.firebase.database();
+        
+        // Đăng ký lắng nghe toàn bộ dữ liệu từ node gốc Firebase
+        const rootRef = firebaseDb.ref();
+        rootRef.on('value', (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+            firebaseDataLoaded = true;
+            notifyListeners(val);
+          } else if (!firebaseDataLoaded) {
+            notifyListeners(getFallbackInitialData());
+          }
+        }, (err) => {
+          console.error("❌ Lỗi đọc dữ liệu Firebase:", err);
+        });
+
+        // Theo dõi trạng thái kết nối Cloud Realtime (.info/connected)
+        const connectedRef = firebaseDb.ref('.info/connected');
+        connectedRef.on('value', (snap) => {
+          isCloudConnected = snap.val() === true;
+          if (isCloudConnected) {
+            console.log("🔥 Đã kết nối Cloud Firebase Realtime Database!");
+          } else {
+            console.log("⚠️ Mất kết nối mạng hoặc đang kết nối lại Firebase...");
+          }
+          if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
+            window.updateDbBadge(isCloudConnected ? "firebase" : "disconnected");
+          }
+          if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
+            window.updateSyncIndicator(isCloudConnected ? "firebase" : "disconnected");
+          }
+        });
+
+        return { mode: "firebase", db: firebaseDb, url: firebaseConfig.databaseURL };
+      } catch (err) {
+        console.error("❌ Lỗi khởi tạo Firebase Database:", err);
         if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
-          window.updateDbBadge(isCloudConnected ? "firebase" : "disconnected");
+          window.updateDbBadge("unconfigured");
         }
         if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
-          window.updateSyncIndicator(isCloudConnected ? "firebase" : "disconnected");
+          window.updateSyncIndicator("unconfigured");
         }
-      });
-
-      return { mode: "firebase", db: firebaseDb, url: firebaseConfig.databaseURL };
-    } catch (err) {
-      console.error("❌ Lỗi khởi tạo Firebase Database:", err);
-      if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
-        window.updateDbBadge("unconfigured");
+        return { mode: "unconfigured", db: null, error: err.message };
       }
-      if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
-        window.updateSyncIndicator("unconfigured");
-      }
-      return { mode: "unconfigured", db: null, error: err.message };
     }
-  }
 
-  // Nếu chưa cấu hình Firebase
-  if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
-    window.updateDbBadge("unconfigured");
-  }
-  if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
-    window.updateSyncIndicator("unconfigured");
-  }
+    // Nếu chưa cấu hình Firebase
+    if (typeof window !== 'undefined' && typeof window.updateDbBadge === 'function') {
+      window.updateDbBadge("unconfigured");
+    }
+    if (typeof window !== 'undefined' && typeof window.updateSyncIndicator === 'function') {
+      window.updateSyncIndicator("unconfigured");
+    }
 
-  return { mode: "unconfigured", db: null };
+    return { mode: "unconfigured", db: null };
+  })();
+
+  return initDbPromise;
 }
 
 /**
  * Kiểm tra kết nối thực tế tới Database (Ping test)
  */
 async function testDatabaseConnection() {
-  if (isFirebaseConfigured() && firebaseDb) {
-    const startTime = Date.now();
-    try {
-      // Đọc node settings từ Firebase để kiểm tra quyền đọc & latency
-      const snap = await firebaseDb.ref('settings/tournamentName').once('value');
-      const latency = Date.now() - startTime;
-      return {
-        success: true,
-        mode: 'firebase',
-        latency: `${latency}ms`,
-        url: firebaseConfig.databaseURL,
-        message: `Đã kết nối thành công tới Firebase Cloud! (Độ trễ: ${latency}ms)`
-      };
-    } catch (err) {
-      return {
-        success: false,
-        mode: 'firebase_error',
-        error: err.message,
-        url: firebaseConfig.databaseURL,
-        message: `Lỗi kết nối Firebase: ${err.message}. Kiểm tra lại Rules trong Firebase Console (Rules cần có ".read": true, ".write": true).`
-      };
+  if (isFirebaseConfigured()) {
+    if (!firebaseDb) {
+      await initDatabaseService();
+    }
+    if (firebaseDb) {
+      const startTime = Date.now();
+      try {
+        // Đọc node settings từ Firebase để kiểm tra quyền đọc & latency
+        const snap = await firebaseDb.ref('settings/tournamentName').once('value');
+        const latency = Date.now() - startTime;
+        return {
+          success: true,
+          mode: 'firebase',
+          latency: `${latency}ms`,
+          url: firebaseConfig.databaseURL,
+          message: `Đã kết nối thành công tới Firebase Cloud! (Độ trễ: ${latency}ms)`
+        };
+      } catch (err) {
+        return {
+          success: false,
+          mode: 'firebase_error',
+          error: err.message,
+          url: firebaseConfig.databaseURL,
+          message: `Lỗi kết nối Firebase: ${err.message}. Kiểm tra lại Rules trong Firebase Console (Rules cần có ".read": true, ".write": true).`
+        };
+      }
     }
   }
 
@@ -215,15 +243,17 @@ async function testDatabaseConnection() {
 function onDataChange(callback) {
   activeListeners.push(callback);
 
-  if (isFirebaseConfigured() && firebaseDb) {
-    const rootRef = firebaseDb.ref();
-    rootRef.on('value', (snapshot) => {
-      const val = snapshot.val();
-      const sanitized = window.sanitizeTournamentData ? window.sanitizeTournamentData(val) : val;
-      callback(sanitized || getFallbackInitialData());
-    });
-  } else {
-    callback(getFallbackInitialData());
+  // Gửi ngay dữ liệu khả dụng hiện tại
+  const initialData = latestData || getLocalData() || getFallbackInitialData();
+  try {
+    callback(initialData);
+  } catch (e) {
+    console.error("Lỗi callback khởi tạo:", e);
+  }
+
+  // Tự động kích hoạt kết nối Firebase nếu có cấu hình
+  if (isFirebaseConfigured()) {
+    initDatabaseService().catch(err => console.error("Lỗi tự động kết nối Firebase:", err));
   }
 
   return () => {
@@ -233,6 +263,7 @@ function onDataChange(callback) {
 
 function notifyListeners(data) {
   const sanitized = window.sanitizeTournamentData ? window.sanitizeTournamentData(data) : data;
+  latestData = sanitized;
   activeListeners.forEach(cb => {
     try {
       cb(sanitized);

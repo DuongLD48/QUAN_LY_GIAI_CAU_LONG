@@ -127,6 +127,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Nạp 3 component HTML vào trang
   await loadAllClientComponents();
 
+  // Khởi tạo kết nối Database (Firebase Cloud)
+  if (typeof initDatabaseService === 'function') {
+    await initDatabaseService();
+  }
+
   // Kết nối Realtime
   setupRealtimeListener();
 });

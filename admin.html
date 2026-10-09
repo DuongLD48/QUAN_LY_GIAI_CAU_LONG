@@ -24,8 +24,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-  <!-- QRCode.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
@@ -135,53 +133,23 @@
 
   </div>
 
-  <!-- ================= QR CODE MODAL ================= -->
-  <div id="admin-qr-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center modal-container">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-700">
-        <h3 class="font-black text-base text-white flex items-center gap-1.5">
-          <i class="fa-solid fa-qrcode text-emerald-400"></i> Mã QR Cho Khán Giả & VĐV
-        </h3>
-        <button id="admin-btn-close-qr" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center transition">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <p class="text-xs text-slate-400 mt-2.5">Quét mã bằng điện thoại để xem trực tiếp tỷ số & bảng xếp hạng</p>
-
-      <div id="admin-qrcode-box" class="my-4 p-4 bg-white rounded-2xl flex items-center justify-center min-h-[200px]"></div>
-
-      <div class="space-y-2.5">
-        <input type="text" id="admin-qr-url-input" class="w-full text-center text-xs font-mono py-1.5 px-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-300 focus:outline-none" readonly>
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <button id="admin-btn-print-qr" class="py-2.5 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow">
-            <i class="fa-solid fa-print"></i> In Mã QR
-          </button>
-          <button id="admin-btn-download-qr" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow">
-            <i class="fa-solid fa-download"></i> Tải Ảnh QR
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Application Shared Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/firebase-env.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/component-loader.js"></script>
+  <script src="js/data.js?v=2.1"></script>
+  <script src="js/firebase-env.js?v=2.1"></script>
+  <script src="js/firebase-config.js?v=2.1"></script>
+  <script src="js/utils.js?v=2.1"></script>
+  <script src="js/component-loader.js?v=2.1"></script>
 
   <!-- Admin Component Controllers -->
-  <script src="components/admin/scores/scores.js"></script>
-  <script src="components/admin/teams/teams.js"></script>
-  <script src="components/admin/schedule/schedule.js"></script>
-  <script src="components/admin/settings/settings.js"></script>
+  <script src="components/admin/scores/scores.js?v=2.1"></script>
+  <script src="components/admin/teams/teams.js?v=2.1"></script>
+  <script src="components/admin/schedule/schedule.js?v=2.1"></script>
+  <script src="components/admin/settings/settings.js?v=2.1"></script>
 
   <!-- Admin Core Orchestrator -->
-  <script src="js/admin-core.js"></script>
+  <script src="js/admin-core.js?v=2.1"></script>
 </body>
 </html>
