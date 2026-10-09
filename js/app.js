@@ -787,8 +787,8 @@ function renderScheduleList() {
     if (!passFilter) return false;
 
     if (searchQuery) {
-      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
-      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m, false);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m, true);
       const matchText = [
         m.id,
         m.code || '',
@@ -829,8 +829,8 @@ function renderScheduleList() {
     html += '</div>';
   } else {
     filtered.forEach(m => {
-      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m);
-      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m);
+      const teamA = getTeamDisplay(m.teamA, m.placeholderA, m.category, m, false);
+      const teamB = getTeamDisplay(m.teamB, m.placeholderB, m.category, m, true);
 
       const isLive = m.status === 'playing';
       const isCompleted = m.status === 'completed';
@@ -956,8 +956,8 @@ function renderLiveCourts() {
     // Các trận tiếp theo trên sân này (tối đa 2 trận kế tiếp)
     const upcomingOnCourt = matches.filter(m => Number(m.court) === courtNumber && m.id !== activeMatch.id && m.status === 'scheduled').slice(0, 2);
 
-    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA, activeMatch.category, activeMatch);
-    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB, activeMatch.category, activeMatch);
+    const teamA = getTeamDisplay(activeMatch.teamA, activeMatch.placeholderA, activeMatch.category, activeMatch, false);
+    const teamB = getTeamDisplay(activeMatch.teamB, activeMatch.placeholderB, activeMatch.category, activeMatch, true);
 
     const isLive = activeMatch.status === 'playing';
     const isCompleted = activeMatch.status === 'completed';
@@ -1079,7 +1079,7 @@ function renderLiveCourts() {
             ${upcomingOnCourt.map(u => `
               <div class="flex items-center justify-between text-[11px] bg-[#091120] px-2.5 py-1.5 rounded-lg border border-[#16263f]">
                 <span class="font-mono text-cyan-400 font-bold">${u.time} • Trận ${u.id}</span>
-                <span class="text-white font-semibold">${getTeamDisplay(u.teamA, u.placeholderA, u.category, u).code || getTeamDisplay(u.teamA, u.placeholderA, u.category, u).name} vs ${getTeamDisplay(u.teamB, u.placeholderB, u.category, u).code || getTeamDisplay(u.teamB, u.placeholderB, u.category, u).name}</span>
+                <span class="text-white font-semibold">${getTeamDisplay(u.teamA, u.placeholderA, u.category, u, false).code || getTeamDisplay(u.teamA, u.placeholderA, u.category, u, false).name} vs ${getTeamDisplay(u.teamB, u.placeholderB, u.category, u, true).code || getTeamDisplay(u.teamB, u.placeholderB, u.category, u, true).name}</span>
               </div>
             `).join('')}
           </div>
@@ -1120,54 +1120,49 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
   if (!match) return null;
   const matches = tournamentData.matches || {};
 
-  // Xử lý Bán kết (M41-M46) nếu teamA/teamB chưa được lưu cứng
+  // Xử lý Bán kết (M41-M46)
   if (match.stage === 'semi_final' || ['M41','M42','M43','M44','M45','M46'].includes(match.id)) {
-    const rawId = isTeamB ? match.teamB : match.teamA;
-    const norm = normalizeTeamId(rawId);
-    if (norm) return norm;
-
     const isBK1 = ['M41','M43','M45'].includes(match.id) || (match.code && match.code.includes('BK1'));
     const isBK2 = ['M42','M44','M46'].includes(match.id) || (match.code && match.code.includes('BK2'));
 
     const settings = tournamentData.settings || {};
     const manualTeams = settings.manualKnockoutTeams || {};
 
-    const topX = typeof calculateGroupStandings === 'function' ? calculateGroupStandings('X') : [];
-    const topD = typeof calculateGroupStandings === 'function' ? calculateGroupStandings('D') : [];
+    // Chế độ hoàn toàn thủ công: luôn lấy từ manualTeams (source of truth)
+    const top1X = manualTeams.top1X || null;
+    const top2X = manualTeams.top2X || null;
+    const top1D = manualTeams.top1D || null;
+    const top2D = manualTeams.top2D || null;
 
-    const top1X = manualTeams.top1X || topX[0]?.team?.id || topX[0]?.id || null;
-    const top2X = manualTeams.top2X || topX[1]?.team?.id || topX[1]?.id || null;
-    const top1D = manualTeams.top1D || topD[0]?.team?.id || topD[0]?.id || null;
-    const top2D = manualTeams.top2D || topD[1]?.team?.id || topD[1]?.id || null;
-
-    if (isBK1) {
-      // BK1: teamA = Top 1 X, teamB = Top 2 D
-      return isTeamB ? top2D : top1X;
-    } else if (isBK2) {
-      // BK2: teamA = Top 1 D, teamB = Top 2 X
-      return isTeamB ? top2X : top1D;
-    }
+    if (isBK1) return isTeamB ? top2D : top1X;
+    else if (isBK2) return isTeamB ? top2X : top1D;
+    return null;
   }
+
 
   // Xử lý Chung kết & Tranh Hạng Ba (M47-M52)
   if (match.stage === 'final' || match.stage === 'third_place' || ['M47','M48','M49','M50','M51','M52'].includes(match.id)) {
-    const rawId = isTeamB ? match.teamB : match.teamA;
-    const normDirect = normalizeTeamId(rawId);
-
     const isFinal = ['M47','M49','M51'].includes(match.id) || (!['M48','M50','M52'].includes(match.id) && (match.stage === 'final' || (match.code && match.code.includes('CK'))));
     const isThird = ['M48','M50','M52'].includes(match.id) || (!isFinal && (match.stage === 'third_place' || (match.code && match.code.includes('H3'))));
     const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
     const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
 
+    // Lấy tên đội bán kết từ resolveKnockoutTeamId (đã kiểm tra điều kiện mode + vòng bảng)
+    const bk1TeamA = resolveKnockoutTeamId(bk1Matches[0], false);
+    const bk1TeamB = resolveKnockoutTeamId(bk1Matches[0], true);
+    const bk2TeamA = resolveKnockoutTeamId(bk2Matches[0], false);
+    const bk2TeamB = resolveKnockoutTeamId(bk2Matches[0], true);
+
+    // Nếu chưa xác định được đội bán kết → không hiện chung kết
+    if (!bk1TeamA || !bk1TeamB || !bk2TeamA || !bk2TeamB) return null;
+
     let bk1WinsA = 0, bk1WinsB = 0;
     bk1Matches.forEach(sub => {
       const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
       if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
-        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
-        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
         const normW = normalizeTeamId(sub.winner);
-        if (normW === normA || s1.a > s1.b) bk1WinsA++;
-        else if (normW === normB || s1.b > s1.a) bk1WinsB++;
+        if (normW === bk1TeamA || s1.a > s1.b) bk1WinsA++;
+        else if (normW === bk1TeamB || s1.b > s1.a) bk1WinsB++;
       }
     });
 
@@ -1175,22 +1170,14 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
     bk2Matches.forEach(sub => {
       const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
       if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
-        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
-        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
         const normW = normalizeTeamId(sub.winner);
-        if (normW === normA || s1.a > s1.b) bk2WinsA++;
-        else if (normW === normB || s1.b > s1.a) bk2WinsB++;
+        if (normW === bk2TeamA || s1.a > s1.b) bk2WinsA++;
+        else if (normW === bk2TeamB || s1.b > s1.a) bk2WinsB++;
       }
     });
 
-    const bk1TeamA = normalizeTeamId(bk1Matches[0]?.teamA) || resolveKnockoutTeamId(bk1Matches[0], false);
-    const bk1TeamB = normalizeTeamId(bk1Matches[0]?.teamB) || resolveKnockoutTeamId(bk1Matches[0], true);
-    const bk2TeamA = normalizeTeamId(bk2Matches[0]?.teamA) || resolveKnockoutTeamId(bk2Matches[0], false);
-    const bk2TeamB = normalizeTeamId(bk2Matches[0]?.teamB) || resolveKnockoutTeamId(bk2Matches[0], true);
-
     let bk1Winner = bk1WinsA >= 2 ? bk1TeamA : (bk1WinsB >= 2 ? bk1TeamB : null);
     let bk1Loser = bk1WinsA >= 2 ? bk1TeamB : (bk1WinsB >= 2 ? bk1TeamA : null);
-
     let bk2Winner = bk2WinsA >= 2 ? bk2TeamA : (bk2WinsB >= 2 ? bk2TeamB : null);
     let bk2Loser = bk2WinsA >= 2 ? bk2TeamB : (bk2WinsB >= 2 ? bk2TeamA : null);
 
@@ -1200,16 +1187,16 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
     } else {
       result = isThird ? bk2Loser : bk2Winner;
     }
-    if (result) return result;
-    if (normDirect) return normDirect;
+    return result; // null nếu chưa có kết quả bán kết
   }
 
-  const rawId = isTeamB ? match.teamB : match.teamA;
-  return normalizeTeamId(rawId);
+  return null;
 }
 
+
 function getKnockoutSubMatchPair(m, teamId, placeholder, isTeamB = false) {
-  const effectiveTeamId = normalizeTeamId(teamId) || resolveKnockoutTeamId(m, isTeamB);
+  // Ưu tiên resolveKnockoutTeamId (source of truth, kiểm tra mode + vòng bảng)
+  const effectiveTeamId = resolveKnockoutTeamId(m, isTeamB) || normalizeTeamId(teamId);
   if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
     return placeholder || "Chưa xác định";
   }
@@ -1255,8 +1242,9 @@ function renderBracket() {
   const getSubMatchWinner = (m) => {
     if (!m) return null;
     const normWinner = normalizeTeamId(m.winner);
-    const normTeamA = normalizeTeamId(m.teamA) || resolveKnockoutTeamId(m, false);
-    const normTeamB = normalizeTeamId(m.teamB) || resolveKnockoutTeamId(m, true);
+    // Ưu tiên resolveKnockoutTeamId (source of truth), không dùng dữ liệu cũ từ Firebase làm fallback
+    const normTeamA = resolveKnockoutTeamId(m, false);
+    const normTeamB = resolveKnockoutTeamId(m, true);
 
     if (normWinner) {
       if (normWinner === normTeamA || normWinner === normTeamB) return normWinner;
@@ -1271,24 +1259,18 @@ function renderBracket() {
     return null;
   };
 
+
   const getTieWinner = (matchesList) => {
     const subMatches = matchesList.map(id => matches[id]).filter(Boolean);
     if (subMatches.length === 0) return null;
     const firstM = subMatches[0];
-    let teamA = resolveKnockoutTeamId(firstM, false) || normalizeTeamId(firstM.teamA);
-    let teamB = resolveKnockoutTeamId(firstM, true) || normalizeTeamId(firstM.teamB);
 
-    if (!teamA || !teamB || teamA === teamB) {
-      for (const m of subMatches) {
-        const a = normalizeTeamId(m.teamA);
-        const b = normalizeTeamId(m.teamB);
-        if (a && b && a !== b) {
-          teamA = a;
-          teamB = b;
-          break;
-        }
-      }
-    }
+    // Luôn dùng resolveKnockoutTeamId làm source of truth, không fallback về dữ liệu cũ từ Firebase
+    const teamA = resolveKnockoutTeamId(firstM, false);
+    const teamB = resolveKnockoutTeamId(firstM, true);
+
+    // Nếu chưa xác định được đội (chưa xong vòng bảng hoặc manual chưa chọn) → không có winner
+    if (!teamA || !teamB) return null;
 
     const winCounts = {};
     subMatches.forEach(m => {
@@ -1302,29 +1284,13 @@ function renderBracket() {
       }
     });
 
-    for (const [wTeam, wins] of Object.entries(winCounts)) {
-      if (wins >= 2) {
-        let otherTeam = (wTeam === teamA) ? teamB : (wTeam === teamB ? teamA : null);
-        if (!otherTeam) {
-          otherTeam = Object.keys(winCounts).find(t => t !== wTeam) || (firstM ? ((wTeam === normalizeTeamId(firstM.teamA)) ? normalizeTeamId(firstM.teamB) : normalizeTeamId(firstM.teamA)) : null);
-        }
-        const otherWins = winCounts[otherTeam] || 0;
-        return {
-          winnerId: wTeam,
-          loserId: otherTeam,
-          score: `${wins}-${otherWins}`
-        };
-      }
-    }
-
-    if (!teamA || !teamB || teamA === teamB) return null;
-
     const teamAWins = winCounts[teamA] || 0;
     const teamBWins = winCounts[teamB] || 0;
     if (teamAWins >= 2) return { winnerId: teamA, loserId: teamB, score: `${teamAWins}-${teamBWins}` };
     if (teamBWins >= 2) return { winnerId: teamB, loserId: teamA, score: `${teamBWins}-${teamAWins}` };
     return null;
   };
+
 
   const finalRes = getTieWinner(finalTieMatches);
   const thirdRes = getTieWinner(thirdTieMatches);
@@ -1407,8 +1373,11 @@ function renderBracket() {
     if (subMatches.length === 0) return '';
 
     const firstM = subMatches[0];
-    const teamA = getTeamDisplay(firstM.teamA, placeholderA, null, firstM, false);
-    const teamB = getTeamDisplay(firstM.teamB, placeholderB, null, firstM, true);
+    // Lấy ID đội từ resolveKnockoutTeamId (source of truth), không dùng firstM.teamA/teamB cũ từ Firebase
+    const resolvedTeamAId = resolveKnockoutTeamId(firstM, false);
+    const resolvedTeamBId = resolveKnockoutTeamId(firstM, true);
+    const teamA = getTeamDisplay(resolvedTeamAId, placeholderA, null, firstM, false);
+    const teamB = getTeamDisplay(resolvedTeamBId, placeholderB, null, firstM, true);
 
     let teamAWins = 0;
     let teamBWins = 0;
@@ -1417,12 +1386,12 @@ function renderBracket() {
       const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
       if (isMCompleted) {
         const w = normalizeTeamId(getSubMatchWinner(m));
-        const normA = normalizeTeamId(teamA.id) || normalizeTeamId(firstM.teamA);
-        const normB = normalizeTeamId(teamB.id) || normalizeTeamId(firstM.teamB);
-        if (w && w === normA) teamAWins++;
-        else if (w && w === normB) teamBWins++;
+        // Dùng resolvedTeamAId/resolvedTeamBId (đã là source of truth, không fallback về Firebase cũ)
+        if (w && w === resolvedTeamAId) teamAWins++;
+        else if (w && w === resolvedTeamBId) teamBWins++;
       }
     });
+
 
     const isCompleted = subMatches.length > 0 && subMatches.every(m => m.status === 'completed' || ((m.scores || [])[0]?.a > 0 || (m.scores || [])[0]?.b > 0));
     const isPlaying = subMatches.some(m => m.status === 'playing');
@@ -1438,8 +1407,8 @@ function renderBracket() {
       const scores = m.scores || [{ a: 0, b: 0 }];
       const s1 = scores[0] || { a: 0, b: 0 };
 
-      const pairA = getKnockoutSubMatchPair(m, m.teamA, placeholderA, false);
-      const pairB = getKnockoutSubMatchPair(m, m.teamB, placeholderB, true);
+      const pairA = getKnockoutSubMatchPair(m, resolvedTeamAId, placeholderA, false);
+      const pairB = getKnockoutSubMatchPair(m, resolvedTeamBId, placeholderB, true);
 
       const matchNo = m.matchNo || (m.id ? m.id.replace(/\D/g, '') : '');
       const subTypeLabel = m.subType || (m.code ? m.code.split('-')[1] : '');
@@ -1601,8 +1570,13 @@ function renderBracket() {
 /**
  * Trợ giúp lấy tên và thành viên đội hiển thị
  */
-function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = null, match = null) {
-  const effectiveTeamId = teamId || (match ? resolveKnockoutTeamId(match, teamId === match.teamB) : null);
+function getTeamDisplay(teamId, placeholder = "Chưa xác định", category = null, match = null, isTeamB = false) {
+  let effectiveTeamId = normalizeTeamId(teamId);
+  if (match && match.stage !== 'group') {
+    // Trận knockout: resolveKnockoutTeamId là nguồn chân lý duy nhất!
+    // Không fallback về teamId cũ trong database nếu chưa đủ điều kiện hoặc chưa chọn đội
+    effectiveTeamId = resolveKnockoutTeamId(match, isTeamB) || null;
+  }
   if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
     return {
       id: null,
@@ -1698,8 +1672,8 @@ function getPlayerNameLines(teamInfo, category = null) {
  * - Nội dung ở giữa: Tên cầu thủ Đội A & Điểm A (Đỏ/Highlight), vạch ngăn cách, Tên cầu thủ Đội B & Điểm B
  */
 function renderRedesignedMatchCard(m, category = null) {
-  const teamA = getTeamDisplay(m.teamA, m.placeholderA, category || m.category);
-  const teamB = getTeamDisplay(m.teamB, m.placeholderB, category || m.category);
+  const teamA = getTeamDisplay(m.teamA, m.placeholderA, category || m.category, m, false);
+  const teamB = getTeamDisplay(m.teamB, m.placeholderB, category || m.category, m, true);
 
   const isLive = m.status === 'playing';
   const isCompleted = m.status === 'completed';

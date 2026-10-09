@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   pointsForWin: 1,
   pointsForLoss: 0,
   adminPin: "123456",
-  knockoutMode: "auto", // "auto" hoặc "manual"
+  knockoutMode: "manual", // Chế độ thủ công hoàn toàn
   manualKnockoutTeams: {
     top1X: "",
     top2X: "",

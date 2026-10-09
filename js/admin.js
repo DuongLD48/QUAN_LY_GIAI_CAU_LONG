@@ -384,8 +384,8 @@ function renderAdminMatches() {
     if (filter === 'knockout' && m.stage === 'group') return false;
 
     if (searchQuery) {
-      const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
-      const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+      const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m, false);
+      const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m, true);
       const pool = [m.id, `m${m.matchNo}`, `#${m.matchNo}`, `sân ${m.court}`, m.time, teamA.name, teamA.code, teamA.membersText, teamB.name, teamB.code, teamB.membersText].join(' ').toLowerCase();
       if (!pool.includes(searchQuery)) return false;
     }
@@ -404,8 +404,8 @@ function renderAdminMatches() {
 
   let html = '';
   filtered.forEach(m => {
-    const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
-    const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+    const teamA = getTeamInfo(m.teamA, m.placeholderA, m.category, m, false);
+    const teamB = getTeamInfo(m.teamB, m.placeholderB, m.category, m, true);
     const isCompleted = m.status === 'completed';
     const isPlaying = m.status === 'playing';
     const setsWon = m.setsWon || { a: 0, b: 0 };
@@ -576,6 +576,9 @@ async function saveInlineMatchScore(matchId) {
         setsWon: match.setsWon,
         winner: match.winner
       });
+      if (typeof checkAndUpdateKnockoutBrackets === 'function') {
+        await checkAndUpdateKnockoutBrackets();
+      }
       showToast(`Đã lưu Trận #${match.matchNo || matchId} [${scoreA} - ${scoreB}]!`);
     }
   } catch (err) {
@@ -782,8 +785,8 @@ function openScoreModal(matchId) {
   currentEditingMatchId = matchId;
   const modal = document.getElementById('score-modal');
 
-  const teamA = getTeamInfo(match.teamA, match.placeholderA, match.category, match);
-  const teamB = getTeamInfo(match.teamB, match.placeholderB, match.category, match);
+  const teamA = getTeamInfo(match.teamA, match.placeholderA, match.category, match, false);
+  const teamB = getTeamInfo(match.teamB, match.placeholderB, match.category, match, true);
 
   const formatInfo = window.getMatchFormat ? window.getMatchFormat(match, tournamentData.settings) : {
     isGroup: match.stage === 'group',
@@ -1042,8 +1045,11 @@ function renderAdminSchedule() {
     const timeVal = m.time || '12:00';
     const courtVal = Number(m.court) || 1;
 
-    const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
-    const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+    const teamAId = isKnockout ? (resolveKnockoutTeamId(m, false) || null) : m.teamA;
+    const teamBId = isKnockout ? (resolveKnockoutTeamId(m, true) || null) : m.teamB;
+
+    const teamAObj = getTeamInfo(teamAId, m.placeholderA, m.category, m, false);
+    const teamBObj = getTeamInfo(teamBId, m.placeholderB, m.category, m, true);
 
     const subTypeLabel = m.subType || (m.code ? m.code.split('-')[1] : '');
     const catBadge = (subTypeLabel === 'Ab' || m.code?.includes('Ab'))
@@ -1124,8 +1130,11 @@ function renderAdminSchedule() {
     const timeVal = m.time || '12:00';
     const courtVal = Number(m.court) || 1;
 
-    const teamAObj = getTeamInfo(m.teamA, m.placeholderA, m.category, m);
-    const teamBObj = getTeamInfo(m.teamB, m.placeholderB, m.category, m);
+    const teamAId = isKnockout ? (resolveKnockoutTeamId(m, false) || null) : m.teamA;
+    const teamBId = isKnockout ? (resolveKnockoutTeamId(m, true) || null) : m.teamB;
+
+    const teamAObj = getTeamInfo(teamAId, m.placeholderA, m.category, m, false);
+    const teamBObj = getTeamInfo(teamBId, m.placeholderB, m.category, m, true);
 
     const subTypeLabelMobile = m.subType || (m.code ? m.code.split('-')[1] : '');
     const catBadge = (subTypeLabelMobile === 'Ab' || m.code?.includes('Ab'))
@@ -1257,20 +1266,6 @@ function fillSettingsForm() {
   if (ptsEl && s.pointsForWin) ptsEl.value = s.pointsForWin;
   if (pinEl && s.adminPin) pinEl.value = s.adminPin;
 
-  // Cấu hình Knockout mode (Auto vs Manual)
-  const mode = s.knockoutMode || 'auto';
-  const autoRadio = document.getElementById('knockout-mode-auto');
-  const manualRadio = document.getElementById('knockout-mode-manual');
-  const manualContainer = document.getElementById('manual-teams-container');
-
-  if (mode === 'manual') {
-    if (manualRadio) manualRadio.checked = true;
-    if (manualContainer) manualContainer.classList.remove('hidden');
-  } else {
-    if (autoRadio) autoRadio.checked = true;
-    if (manualContainer) manualContainer.classList.add('hidden');
-  }
-
   // Nạp danh sách các đội vào dropdown chọn thủ công
   const teams = Object.values(tournamentData.teams || {});
   const teamsX = teams.filter(t => t.group === 'X');
@@ -1305,19 +1300,6 @@ function setupSettingsForm() {
   const form = document.getElementById('form-settings');
   if (!form) return;
 
-  const autoRadio = document.getElementById('knockout-mode-auto');
-  const manualRadio = document.getElementById('knockout-mode-manual');
-  const manualContainer = document.getElementById('manual-teams-container');
-
-  if (autoRadio && manualRadio && manualContainer) {
-    autoRadio.addEventListener('change', () => {
-      if (autoRadio.checked) manualContainer.classList.add('hidden');
-    });
-    manualRadio.addEventListener('change', () => {
-      if (manualRadio.checked) manualContainer.classList.remove('hidden');
-    });
-  }
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!ensureDbConnected()) return;
@@ -1326,7 +1308,7 @@ function setupSettingsForm() {
     const pointsForWin = parseInt(document.getElementById('setting-points-win').value) || 1;
     const adminPin = document.getElementById('setting-admin-pin').value.trim() || "123456";
 
-    const knockoutMode = document.querySelector('input[name="setting-knockout-mode"]:checked')?.value || 'auto';
+    const knockoutMode = 'manual'; // Hoàn toàn thủ công
     const manualKnockoutTeams = {
       top1X: document.getElementById('select-top1-x')?.value || '',
       top2X: document.getElementById('select-top2-x')?.value || '',
@@ -1432,7 +1414,8 @@ function setupDatabaseActionButtons() {
               status: "scheduled"
             });
           }
-          showToast("Đã reset tỷ số toàn bộ các trận!");
+          await checkAndUpdateKnockoutBrackets();
+          showToast("Đã reset tỷ số toàn bộ các trận và làm mới vòng Knockout!");
         } catch (err) {
           showToast(`❌ Lỗi reset tỷ số: ${err.message}`, "error");
           alert(`❌ Lỗi kết nối Database: ${err.message}`);
@@ -1551,7 +1534,6 @@ function setupDatabaseActionButtons() {
 async function checkAndUpdateKnockoutBrackets() {
   const matches = tournamentData.matches || {};
   const settings = tournamentData.settings || {};
-  const knockoutMode = settings.knockoutMode || 'auto';
   const manualTeams = settings.manualKnockoutTeams || {};
 
   let bk1TeamA = null;
@@ -1559,45 +1541,30 @@ async function checkAndUpdateKnockoutBrackets() {
   let bk2TeamA = null;
   let bk2TeamB = null;
 
-  if (knockoutMode === 'manual') {
-    bk1TeamA = manualTeams.top1X || null;
-    bk1TeamB = manualTeams.top2D || null;
-    bk2TeamA = manualTeams.top1D || null;
-    bk2TeamB = manualTeams.top2X || null;
+  // Chế độ hoàn toàn thủ công: lấy từ manualTeams, bỏ qua điều kiện vòng bảng
+  bk1TeamA = manualTeams.top1X || null;
+  bk1TeamB = manualTeams.top2D || null;
+  bk2TeamA = manualTeams.top1D || null;
+  bk2TeamB = manualTeams.top2X || null;
 
+  // Chỉ ghi vào Firebase khi đã điền đủ tên 4 đội
+  if (bk1TeamA && bk1TeamB && bk2TeamA && bk2TeamB) {
     // Bán kết 1 (M41, M43, M45)
-    await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
-    await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
-    await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
+    for (const id of ['M41', 'M43', 'M45']) {
+      if (matches[id]) { matches[id].teamA = bk1TeamA; matches[id].teamB = bk1TeamB; }
+      await updateMatchSchedule(id, { teamA: bk1TeamA, teamB: bk1TeamB });
+    }
 
     // Bán kết 2 (M42, M44, M46)
-    await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
-    await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
-    await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
+    for (const id of ['M42', 'M44', 'M46']) {
+      if (matches[id]) { matches[id].teamA = bk2TeamA; matches[id].teamB = bk2TeamB; }
+      await updateMatchSchedule(id, { teamA: bk2TeamA, teamB: bk2TeamB });
+    }
   } else {
-    const groupMatches = Object.values(matches).filter(m => m.stage === 'group');
-    const allGroupDone = groupMatches.length === 40 && groupMatches.every(m => m.status === 'completed');
-
-    if (allGroupDone) {
-      const topX = getGroupTopTeams('X');
-      const topD = getGroupTopTeams('D');
-
-      if (topX.length >= 2 && topD.length >= 2) {
-        bk1TeamA = topX[0].id; // Nhất X
-        bk1TeamB = topD[1].id; // Nhì Đ
-        bk2TeamA = topD[0].id; // Nhất Đ
-        bk2TeamB = topX[1].id; // Nhì X
-
-        // Bán kết 1 (M41, M43, M45)
-        await updateMatchSchedule('M41', { teamA: bk1TeamA, teamB: bk1TeamB });
-        await updateMatchSchedule('M43', { teamA: bk1TeamA, teamB: bk1TeamB });
-        await updateMatchSchedule('M45', { teamA: bk1TeamA, teamB: bk1TeamB });
-
-        // Bán kết 2 (M42, M44, M46)
-        await updateMatchSchedule('M42', { teamA: bk2TeamA, teamB: bk2TeamB });
-        await updateMatchSchedule('M44', { teamA: bk2TeamA, teamB: bk2TeamB });
-        await updateMatchSchedule('M46', { teamA: bk2TeamA, teamB: bk2TeamB });
-      }
+    // Chưa chọn đủ 4 đội -> reset Bán kết về null
+    for (const id of ['M41', 'M42', 'M43', 'M44', 'M45', 'M46']) {
+      if (matches[id]) { matches[id].teamA = null; matches[id].teamB = null; }
+      await updateMatchSchedule(id, { teamA: null, teamB: null });
     }
   }
 
@@ -1610,8 +1577,8 @@ async function checkAndUpdateKnockoutBrackets() {
     const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
     const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
     if (isMCompleted) {
-      if (m.winner === m.teamA || s1.a > s1.b) bk1WinsA++;
-      else if (m.winner === m.teamB || s1.b > s1.a) bk1WinsB++;
+      if (m.winner === bk1TeamA || s1.a > s1.b) bk1WinsA++;
+      else if (m.winner === bk1TeamB || s1.b > s1.a) bk1WinsB++;
     }
   });
 
@@ -1620,36 +1587,49 @@ async function checkAndUpdateKnockoutBrackets() {
     const s1 = (m.scores || [])[0] || { a: 0, b: 0 };
     const isMCompleted = m.status === 'completed' || s1.a > 0 || s1.b > 0;
     if (isMCompleted) {
-      if (m.winner === m.teamA || s1.a > s1.b) bk2WinsA++;
-      else if (m.winner === m.teamB || s1.b > s1.a) bk2WinsB++;
+      if (m.winner === bk2TeamA || s1.a > s1.b) bk2WinsA++;
+      else if (m.winner === bk2TeamB || s1.b > s1.a) bk2WinsB++;
     }
   });
 
-  const curBk1TeamA = bk1Matches[0]?.teamA;
-  const curBk1TeamB = bk1Matches[0]?.teamB;
-  const curBk2TeamA = bk2Matches[0]?.teamA;
-  const curBk2TeamB = bk2Matches[0]?.teamB;
-
   let bk1Winner = null, bk1Loser = null;
-  if (bk1WinsA >= 2) { bk1Winner = curBk1TeamA; bk1Loser = curBk1TeamB; }
-  else if (bk1WinsB >= 2) { bk1Winner = curBk1TeamB; bk1Loser = curBk1TeamA; }
+  if (bk1TeamA && bk1TeamB) {
+    if (bk1WinsA >= 2) { bk1Winner = bk1TeamA; bk1Loser = bk1TeamB; }
+    else if (bk1WinsB >= 2) { bk1Winner = bk1TeamB; bk1Loser = bk1TeamA; }
+  }
 
   let bk2Winner = null, bk2Loser = null;
-  if (bk2WinsA >= 2) { bk2Winner = curBk2TeamA; bk2Loser = curBk2TeamB; }
-  else if (bk2WinsB >= 2) { bk2Winner = curBk2TeamB; bk2Loser = curBk2TeamA; }
+  if (bk2TeamA && bk2TeamB) {
+    if (bk2WinsA >= 2) { bk2Winner = bk2TeamA; bk2Loser = bk2TeamB; }
+    else if (bk2WinsB >= 2) { bk2Winner = bk2TeamB; bk2Loser = bk2TeamA; }
+  }
 
   if (bk1Winner && bk2Winner) {
     // Tranh Vô Địch (M47, M49, M51)
-    await updateMatchSchedule('M47', { teamA: bk1Winner, teamB: bk2Winner });
-    await updateMatchSchedule('M49', { teamA: bk1Winner, teamB: bk2Winner });
-    await updateMatchSchedule('M51', { teamA: bk1Winner, teamB: bk2Winner });
+    for (const id of ['M47', 'M49', 'M51']) {
+      if (matches[id]) { matches[id].teamA = bk1Winner; matches[id].teamB = bk2Winner; }
+      await updateMatchSchedule(id, { teamA: bk1Winner, teamB: bk2Winner });
+    }
+  } else {
+    // Chưa xác định xong 2 đội thắng BK -> reset Chung kết về null
+    for (const id of ['M47', 'M49', 'M51']) {
+      if (matches[id]) { matches[id].teamA = null; matches[id].teamB = null; }
+      await updateMatchSchedule(id, { teamA: null, teamB: null });
+    }
   }
 
   if (bk1Loser && bk2Loser) {
     // Tranh Hạng Ba (M48, M50, M52)
-    await updateMatchSchedule('M48', { teamA: bk1Loser, teamB: bk2Loser });
-    await updateMatchSchedule('M50', { teamA: bk1Loser, teamB: bk2Loser });
-    await updateMatchSchedule('M52', { teamA: bk1Loser, teamB: bk2Loser });
+    for (const id of ['M48', 'M50', 'M52']) {
+      if (matches[id]) { matches[id].teamA = bk1Loser; matches[id].teamB = bk2Loser; }
+      await updateMatchSchedule(id, { teamA: bk1Loser, teamB: bk2Loser });
+    }
+  } else {
+    // Chưa xác định xong 2 đội thua BK -> reset Tranh Hạng Ba về null
+    for (const id of ['M48', 'M50', 'M52']) {
+      if (matches[id]) { matches[id].teamA = null; matches[id].teamB = null; }
+      await updateMatchSchedule(id, { teamA: null, teamB: null });
+    }
   }
 
   renderAdminAll();
@@ -1700,52 +1680,48 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
   if (!match) return null;
   const matches = tournamentData.matches || {};
 
-  // Xử lý Bán kết (M41-M46) nếu teamA/teamB chưa được lưu cứng
+  // Xử lý Bán kết (M41-M46)
   if (match.stage === 'semi_final' || ['M41','M42','M43','M44','M45','M46'].includes(match.id)) {
-    const rawId = isTeamB ? match.teamB : match.teamA;
-    const norm = normalizeTeamId(rawId);
-    if (norm) return norm;
-
     const isBK1 = ['M41','M43','M45'].includes(match.id) || (match.code && match.code.includes('BK1'));
     const isBK2 = ['M42','M44','M46'].includes(match.id) || (match.code && match.code.includes('BK2'));
 
     const settings = tournamentData.settings || {};
     const manualTeams = settings.manualKnockoutTeams || {};
 
-    const topX = typeof getGroupTopTeams === 'function' ? getGroupTopTeams('X') : [];
-    const topD = typeof getGroupTopTeams === 'function' ? getGroupTopTeams('D') : [];
+    // Chế độ hoàn toàn thủ công: luôn lấy từ manualTeams (source of truth)
+    const top1X = manualTeams.top1X || null;
+    const top2X = manualTeams.top2X || null;
+    const top1D = manualTeams.top1D || null;
+    const top2D = manualTeams.top2D || null;
 
-    const top1X = manualTeams.top1X || topX[0]?.id || null;
-    const top2X = manualTeams.top2X || topX[1]?.id || null;
-    const top1D = manualTeams.top1D || topD[0]?.id || null;
-    const top2D = manualTeams.top2D || topD[1]?.id || null;
-
-    if (isBK1) {
-      return isTeamB ? top2D : top1X;
-    } else if (isBK2) {
-      return isTeamB ? top2X : top1D;
-    }
+    if (isBK1) return isTeamB ? top2D : top1X;
+    else if (isBK2) return isTeamB ? top2X : top1D;
+    return null;
   }
 
   // Xử lý Chung kết & Tranh Hạng Ba (M47-M52)
   if (match.stage === 'final' || match.stage === 'third_place' || ['M47','M48','M49','M50','M51','M52'].includes(match.id)) {
-    const rawId = isTeamB ? match.teamB : match.teamA;
-    const normDirect = normalizeTeamId(rawId);
-
     const isFinal = ['M47','M49','M51'].includes(match.id) || (!['M48','M50','M52'].includes(match.id) && (match.stage === 'final' || (match.code && match.code.includes('CK'))));
     const isThird = ['M48','M50','M52'].includes(match.id) || (!isFinal && (match.stage === 'third_place' || (match.code && match.code.includes('H3'))));
     const bk1Matches = [matches['M41'], matches['M43'], matches['M45']].filter(Boolean);
     const bk2Matches = [matches['M42'], matches['M44'], matches['M46']].filter(Boolean);
 
+    // Lấy tên đội bán kết từ resolveKnockoutTeamId (đã kiểm tra điều kiện mode + vòng bảng)
+    const bk1TeamA = resolveKnockoutTeamId(bk1Matches[0], false);
+    const bk1TeamB = resolveKnockoutTeamId(bk1Matches[0], true);
+    const bk2TeamA = resolveKnockoutTeamId(bk2Matches[0], false);
+    const bk2TeamB = resolveKnockoutTeamId(bk2Matches[0], true);
+
+    // Nếu chưa xác định được đội bán kết → không hiện chung kết
+    if (!bk1TeamA || !bk1TeamB || !bk2TeamA || !bk2TeamB) return null;
+
     let bk1WinsA = 0, bk1WinsB = 0;
     bk1Matches.forEach(sub => {
       const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
       if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
-        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
-        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
         const normW = normalizeTeamId(sub.winner);
-        if (normW === normA || s1.a > s1.b) bk1WinsA++;
-        else if (normW === normB || s1.b > s1.a) bk1WinsB++;
+        if (normW === bk1TeamA || s1.a > s1.b) bk1WinsA++;
+        else if (normW === bk1TeamB || s1.b > s1.a) bk1WinsB++;
       }
     });
 
@@ -1753,22 +1729,14 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
     bk2Matches.forEach(sub => {
       const s1 = (sub.scores || [])[0] || { a: 0, b: 0 };
       if (sub.status === 'completed' || s1.a > 0 || s1.b > 0) {
-        const normA = normalizeTeamId(sub.teamA) || resolveKnockoutTeamId(sub, false);
-        const normB = normalizeTeamId(sub.teamB) || resolveKnockoutTeamId(sub, true);
         const normW = normalizeTeamId(sub.winner);
-        if (normW === normA || s1.a > s1.b) bk2WinsA++;
-        else if (normW === normB || s1.b > s1.a) bk2WinsB++;
+        if (normW === bk2TeamA || s1.a > s1.b) bk2WinsA++;
+        else if (normW === bk2TeamB || s1.b > s1.a) bk2WinsB++;
       }
     });
 
-    const bk1TeamA = normalizeTeamId(bk1Matches[0]?.teamA) || resolveKnockoutTeamId(bk1Matches[0], false);
-    const bk1TeamB = normalizeTeamId(bk1Matches[0]?.teamB) || resolveKnockoutTeamId(bk1Matches[0], true);
-    const bk2TeamA = normalizeTeamId(bk2Matches[0]?.teamA) || resolveKnockoutTeamId(bk2Matches[0], false);
-    const bk2TeamB = normalizeTeamId(bk2Matches[0]?.teamB) || resolveKnockoutTeamId(bk2Matches[0], true);
-
     let bk1Winner = bk1WinsA >= 2 ? bk1TeamA : (bk1WinsB >= 2 ? bk1TeamB : null);
     let bk1Loser = bk1WinsA >= 2 ? bk1TeamB : (bk1WinsB >= 2 ? bk1TeamA : null);
-
     let bk2Winner = bk2WinsA >= 2 ? bk2TeamA : (bk2WinsB >= 2 ? bk2TeamB : null);
     let bk2Loser = bk2WinsA >= 2 ? bk2TeamB : (bk2WinsB >= 2 ? bk2TeamA : null);
 
@@ -1778,19 +1746,19 @@ function resolveKnockoutTeamId(match, isTeamB = false) {
     } else {
       result = isThird ? bk2Loser : bk2Winner;
     }
-    if (result) return result;
-    if (normDirect) return normDirect;
+    return result; // null nếu chưa có kết quả bán kết
   }
 
-  const rawId = isTeamB ? match.teamB : match.teamA;
-  return normalizeTeamId(rawId);
+  return null;
 }
+
 
 function getTeamInfo(teamId, placeholder = "Chưa xác định", category = null, match = null, isTeamB = false) {
   let effectiveTeamId = normalizeTeamId(teamId);
-  if (!effectiveTeamId && match) {
-    const dynamicId = resolveKnockoutTeamId(match, isTeamB);
-    if (dynamicId) effectiveTeamId = dynamicId;
+  if (match && match.stage !== 'group') {
+    // Trận Knockout: resolveKnockoutTeamId là nguồn chân lý duy nhất!
+    // Không fallback về teamId cũ trong database nếu chưa đủ điều kiện hoặc chưa chọn đội
+    effectiveTeamId = resolveKnockoutTeamId(match, isTeamB) || null;
   }
 
   if (!effectiveTeamId || !tournamentData.teams || !tournamentData.teams[effectiveTeamId]) {
